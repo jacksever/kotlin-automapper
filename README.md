@@ -1,6 +1,6 @@
 # Kotlin AutoMapper
 
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE) ![Kotlin](https://img.shields.io/badge/Kotlin-2.2.21-blue.svg) ![KSP](https://img.shields.io/badge/KSP-2.2.21--2.0.4-blue.svg)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE) [![Maven Central](https://img.shields.io/maven-central/v/io.github.jacksever.automapper/annotation)](https://search.maven.org/artifact/io.github.jacksever.automapper/annotation) ![Kotlin](https://img.shields.io/badge/Kotlin-2.2.21-blue.svg) ![KSP](https://img.shields.io/badge/KSP-2.2.21--2.0.4-blue.svg)
 
 Effortless, type-safe object-to-object mapping in Kotlin. Tired of writing boilerplate code to convert one object to another? This library does it for you at compile time.
 
@@ -27,10 +27,10 @@ Kotlin AutoMapper uses KSP (Kotlin Symbol Processing) to generate extension func
 ```kotlin
 dependencies {
     // Annotation dependency
-    implementation(project(":automapper:annotation"))
+    implementation("io.github.jacksever.automapper:annotation:0.1.0")
 
     // KSP processor
-    ksp(project(":automapper:processor"))
+    ksp("io.github.jacksever.automapper:processor:0.1.0")
 }
 ```
 
