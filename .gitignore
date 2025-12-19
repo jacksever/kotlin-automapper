@@ -1,0 +1,115 @@
+### Project Specific ###
+.envrc
+.java-version
+.direnv/
+
+# Kotlin 2.0
+.kotlin/
+
+### OS Files ###
+# macOS
+.DS_Store
+.Spotlight-V100
+.Trashes
+
+# Windows
+ehthumbs.db
+Thumbs.db
+
+# Git
+*.orig
+
+### Android ###
+# Gradle files
+build
+.gradle/
+local.properties
+
+# Logs
+*.log
+
+# Android Studio generated files and folders
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+output-metadata.json
+output.json
+
+# IntelliJ configuration
+misc.xml
+deploymentTargetDropDown.xml
+deploymentTargetSelector.xml
+render.experimental.xml
+runConfigurations.xml
+AndroidProjectSystem.xml
+
+# Security files
+*.jks
+*.keystore
+google-services.json
+
+# Profiling
+*.hprof
+
+### IntelliJ IDEA ###
+# Asset wizard
+.idea/assetWizardSettings.xml
+
+# User-specific files
+.idea/**/workspace.xml
+.idea/**/tasks.xml
+.idea/**/usage.statistics.xml
+.idea/**/dictionaries
+.idea/**/shelf
+.idea/caches/
+.idea/inspectionProfiles/
+
+# AWS
+.idea/**/aws.xml
+
+# Generated files
+.idea/**/contentModel.xml
+.idea/other.xml
+.idea/androidTestResultsUserPreferences.xml
+
+# Sensitive or high-churn files
+.idea/**/dataSources/
+.idea/**/dataSources.ids
+.idea/**/dataSources.local.xml
+.idea/**/sqlDataSources.xml
+.idea/**/dynamic.xml
+.idea/**/uiDesigner.xml
+.idea/**/dbnavigator.xml
+
+# Gradle
+.idea/**/gradle.xml
+.idea/**/libraries
+
+# Auto-import
+.idea/artifacts
+.idea/compiler.xml
+.idea/jarRepositories.xml
+.idea/modules.xml
+.idea/*.iml
+.idea/modules
+*.iml
+*.ipr
+
+# Build and plugins
+cmake-build-*/
+out/
+.idea_modules/
+.idea/replstate.xml
+.idea/sonarlint/
+.idea/httpRequests
+.idea/caches/build_file_checksums.ser
+
+# Other plugins
+.idea/**/mongoSettings.xml
+atlassian-ide-plugin.xml
+com_crashlytics_export_strings.xml
+crashlytics.properties
+crashlytics-build.properties
+fabric.properties

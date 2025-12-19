@@ -1,0 +1,21 @@
+[versions]
+# region Kotlin
+org-jetbrains-kotlin = "2.2.21"
+# endregion
+
+# region Google
+com-google-ksp = "2.2.21-2.0.4"
+# endregion
+
+# region Code Generation
+com-squareup-kotlinpoet = "2.2.0"
+# endregion
+
+[libraries]
+com-squareup-kotlinpoet = { module = "com.squareup:kotlinpoet", version.ref = "com-squareup-kotlinpoet" }
+com-squareup-kotlinpoet-ksp = { module = "com.squareup:kotlinpoet-ksp", version.ref = "com-squareup-kotlinpoet" }
+google-devtools-ksp-processor-api = { module = "com.google.devtools.ksp:symbol-processing-api", version.ref = "com-google-ksp" }
+
+[plugins]
+com-google-ksp = { id = "com.google.devtools.ksp", version.ref = "com-google-ksp" }
+org-jetbrains-kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "org-jetbrains-kotlin" }
