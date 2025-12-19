@@ -72,6 +72,7 @@ google-services.json
 # Generated files
 .idea/**/contentModel.xml
 .idea/other.xml
+.idea/markdown.xml
 .idea/androidTestResultsUserPreferences.xml
 
 # Sensitive or high-churn files
