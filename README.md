@@ -21,6 +21,7 @@ Kotlin AutoMapper uses KSP (Kotlin Symbol Processing) to generate extension func
 ## Setup
 
 1.  Ensure you have the `ksp` plugin applied in your module's `build.gradle.kts` file.
+
 2.  Add the dependencies to your `build.gradle.kts`:
 
 ```kotlin
@@ -39,27 +40,7 @@ Using the library is a simple three-step process:
 
 ### Step 1: Define Your Models
 
-Let's say you have a domain model and a database entity.
-
-**Domain Model:**
-`src/main/kotlin/com/example/domain/User.kt`
-```kotlin
-data class User(
-    val id: Long,
-    val name: String,
-    val age: Int
-)
-```
-
-**Entity Model:**
-`src/main/kotlin/com/example/entity/UserEntity.kt`
-```kotlin
-data class UserEntity(
-    val id: Long,
-    val name: String,
-    val age: Int
-)
-```
+Define your models as you normally would. For example, a `User` data class, a `Status` enum, and a `Shape` sealed interface.
 
 ### Step 2: Declare Your Mapping Intent
 
@@ -74,9 +55,17 @@ import io.github.jacksever.automapper.annotation.AutoMapperModule
 @AutoMapperModule
 internal interface MapperModule {
     
-    // This will create User.asUserEntity() and UserEntity.asUser()
+    // Data class mapping
     @AutoMapper
     fun userMapper(user: User): UserEntity
+
+    // Sealed class mapping
+    @AutoMapper
+    fun shapeMapper(shape: Shape): ShapeEntity
+
+    // Enum mapping
+    @AutoMapper
+    fun statusMapper(status: Status): StatusEntity
 }
 ```
 
@@ -86,14 +75,13 @@ Build your project (`./gradlew build`). KSP will automatically find your `Mapper
 
 ### What Happens Under the Hood?
 
-For the `MapperModule` defined above, the KSP processor will generate a new file named `UserMapper.kt` inside the `com.example.mapper` package. This file will contain the actual extension functions:
+KSP generates extension functions for each mapping you defined. Here is what the generated code looks like:
 
-`src/main/kotlin/com/example/mapper/UserMapper.kt` (Generated)
+**Data Class Mapping:**
+
+`UserMapper.kt` (Generated)
 ```kotlin
 package com.example.mapper
-
-import com.example.domain.User
-import com.example.entity.UserEntity
 
 // Generated code is internal because the MapperModule is internal
 
@@ -116,25 +104,61 @@ internal fun UserEntity.asUser(): User = User(
 )
 ```
 
+**Enum Mapping:**
+
+`StatusMapper.kt` (Generated)
+```kotlin
+package com.example.mapper
+
+/**
+ * Converts [Status] to [StatusEntity]
+ */
+internal fun Status.asStatusEntity(): StatusEntity = StatusEntity.valueOf(name)
+
+/**
+ * Converts [StatusEntity] to [Status]
+ */
+internal fun StatusEntity.asStatus(): Status = Status.valueOf(name)
+```
+
+**Sealed Class Mapping:**
+
+`ShapeMapper.kt` (Generated)
+```kotlin
+package com.example.mapper
+
+/**
+ * Converts [Shape] to [ShapeEntity]
+ */
+internal fun Shape.asShapeEntity(): ShapeEntity = when (this) {
+    Shape.NoShape -> ShapeEntity.NoShape
+    is Shape.Square -> ShapeEntity.Square(side = side)
+    is Shape.Circle -> ShapeEntity.Circle(radius = radius)
+}
+
+/**
+ * Converts [ShapeEntity] to [Shape]
+ */
+internal fun ShapeEntity.asShape(): Shape = when (this) {
+    ShapeEntity.NoShape -> Shape.NoShape
+    is ShapeEntity.Square -> Shape.Square(side = side)
+    is ShapeEntity.Circle -> Shape.Circle(radius = radius)
+}
+```
+
 ### Step 4: Use the Generated Functions
 
 You can now call the generated functions directly on your objects.
 
 ```kotlin
-import com.example.mapper.asUser
 import com.example.mapper.asUserEntity
 
 fun main() {
-    
     val domainUser = User(id = 1, name = "Jane Doe", age = 28)
 
     // Convert to entity
     val entity = domainUser.asUserEntity()
     println("Entity: $entity")
-
-    // Convert back to domain
-    val revertedUser = entity.asUser()
-    println("Reverted: $revertedUser")
 }
 ```
 
@@ -153,10 +177,6 @@ interface MapperModule {
     fun userUiMapper(user: User): UiUser
 }
 ```
-
-### Enum and Sealed Class Mapping
-
-Mapping `enum` and `sealed` classes works exactly the same way. Just define them in your `MapperModule`, and the processor will generate the necessary code (`valueOf(name)` for enums and a `when` expression for sealed classes).
 
 ## Compatibility
 
