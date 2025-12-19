@@ -125,6 +125,7 @@ import com.example.mapper.asUser
 import com.example.mapper.asUserEntity
 
 fun main() {
+    
     val domainUser = User(id = 1, name = "Jane Doe", age = 28)
 
     // Convert to entity
