@@ -1,13 +1,14 @@
 # Kotlin AutoMapper
 
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE) [![Maven Central](https://img.shields.io/maven-central/v/io.github.jacksever.automapper/annotation)](https://search.maven.org/artifact/io.github.jacksever.automapper/annotation) ![Kotlin](https://img.shields.io/badge/Kotlin-2.2.21-blue.svg) ![KSP](https://img.shields.io/badge/KSP-2.2.21--2.0.4-blue.svg)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE) [![Maven Central](https://img.shields.io/maven-central/v/io.github.jacksever.automapper/annotation)](https://search.maven.org/artifact/io.github.jacksever.automapper/annotation) ![Kotlin Multiplatform](https://img.shields.io/badge/Kotlin-Multiplatform-blue) ![Kotlin](https://img.shields.io/badge/Kotlin-2.2.21-blue.svg) ![KSP](https://img.shields.io/badge/KSP-2.2.21--2.0.4-blue.svg)
 
-Effortless, type-safe object-to-object mapping in Kotlin. Tired of writing boilerplate code to convert one object to another? This library does it for you at compile time.
+Effortless, type-safe object-to-object mapping in Kotlin. Tired of writing boilerplate code to convert one object to another? This library does it for you at compile time, with full support for Kotlin Multiplatform.
 
-Kotlin AutoMapper uses KSP (Kotlin Symbol Processing) to generate extension functions that automatically map your `data`, `enum`, and `sealed` classes. No reflection, no runtime magic - just pure, fast, and safe generated code.
+Kotlin AutoMapper uses KSP (Kotlin Symbol Processing) to generate extension functions that automatically map your `data`, `enum`, and `sealed` classes. No reflection, no runtime magic - just pure, fast, and safe generated code for all your targets.
 
 ## Features
 
+-   **Kotlin Multiplatform:** Designed from the ground up to work with KMP, generating code for `JVM`, `iOS`, `JS`, and `Wasm` targets.
 -   **Compile-Time Safety:** All mappings are verified at build time.
 -   **Reflection-Free:** Blazing-fast performance at runtime.
 -   **Multi-Module Support:** Seamlessly map classes across different Gradle modules, perfect for clean architecture setups.
@@ -20,19 +21,42 @@ Kotlin AutoMapper uses KSP (Kotlin Symbol Processing) to generate extension func
 
 ## Setup
 
-1.  Ensure you have the `ksp` plugin applied in your module's `build.gradle.kts` file.
+Ensure you have the `ksp` plugin applied in your module's `build.gradle.kts` file.
 
-2.  Add the dependencies to your `build.gradle.kts`:
+### For a Kotlin Multiplatform Project
 
-```kotlin
-dependencies {
-    // Annotation dependency
-    implementation("io.github.jacksever.automapper:annotation:0.1.0")
+ ```kotlin
+ kotlin {
+     sourceSets {
+         commonMain.dependencies {
+             // 1. Add the annotation dependency to commonMain
+             implementation("io.github.jacksever.automapper:annotation:0.2.0")
+         }
+     }
+ }
 
-    // KSP processor
-    ksp("io.github.jacksever.automapper:processor:0.1.0")
-}
-```
+ // 2. Apply the processor to the targets you need
+ dependencies {
+     add("kspJs", "io.github.jacksever.automapper:processor:0.2.0")
+     add("kspJvm", "io.github.jacksever.automapper:processor:0.2.0")
+     add("kspIosX64", "io.github.jacksever.automapper:processor:0.2.0")
+     // etc. for your other targets
+ }
+ ```
+
+### For an Android-Only (or JVM) Project
+
+In a standard Android or JVM module, you can add the dependencies directly.
+
+ ```kotlin
+ dependencies {
+     // Annotation dependency
+     implementation("io.github.jacksever.automapper:annotation:0.2.0")
+
+     // KSP processor
+     ksp("io.github.jacksever.automapper:processor:0.2.0")
+ }
+ ```
 
 ## How to Use
 
@@ -40,13 +64,13 @@ Using the library is a simple three-step process:
 
 ### Step 1: Define Your Models
 
-Define your models as you normally would. For example, a `User` data class, a `Status` enum, and a `Shape` sealed interface.
+For a KMP project, define your models in `commonMain` so they are accessible from all targets.
 
 ### Step 2: Declare Your Mapping Intent
 
-Create an interface and annotate it with `@AutoMapperModule`. Inside, define functions that describe *what* you want to map. The function names do not matter.
+Create an interface (also in `commonMain`) and annotate it with `@AutoMapperModule`. Inside, define functions that describe *what* you want to map.
 
-`src/main/kotlin/com/example/mapper/MapperModule.kt`
+`src/commonMain/kotlin/com/example/mapper/MapperModule.kt`
 ```kotlin
 import io.github.jacksever.automapper.annotation.AutoMapper
 import io.github.jacksever.automapper.annotation.AutoMapperModule
@@ -71,7 +95,7 @@ internal interface MapperModule {
 
 ### Step 3: Build Your Project
 
-Build your project (`./gradlew build`). KSP will automatically find your `MapperModule` and generate the necessary extension functions.
+Build your project (`./gradlew build`). KSP will automatically find your `MapperModule` and generate the necessary extension functions for each target.
 
 ### What Happens Under the Hood?
 
@@ -148,7 +172,7 @@ internal fun ShapeEntity.asShape(): Shape = when (this) {
 
 ### Step 4: Use the Generated Functions
 
-You can now call the generated functions directly on your objects.
+You can now call the generated functions directly from your common or platform-specific code.
 
 ```kotlin
 import com.example.mapper.asUserEntity
