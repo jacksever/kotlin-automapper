@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.github.jacksever.automapper.sample
+package io.github.jacksever.automapper.io.github.jacksever.automapper.sample
 
 import io.github.jacksever.automapper.sample.domain.shape.Shape
 import io.github.jacksever.automapper.sample.domain.status.Status
