@@ -52,12 +52,6 @@ mavenPublishing {
     publishToMavenCentral()
 }
 
-kotlin {
-    sourceSets.main {
-        kotlin.srcDir("build/generated/ksp/main/kotlin")
-    }
-}
-
 dependencies {
     /**
      * Automapper internal dependencies

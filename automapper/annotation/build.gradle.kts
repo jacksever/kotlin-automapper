@@ -1,10 +1,32 @@
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
+
 plugins {
-    kotlin("jvm")
+    alias(libs.plugins.org.jetbrains.kotlin.multiplatform)
     alias(libs.plugins.com.vanniktech.maven.publish)
 }
 
 group = "io.github.jacksever.automapper"
 version = "0.1.0"
+
+kotlin {
+    jvm()
+    iosX64()
+    iosArm64()
+    iosSimulatorArm64()
+    js(IR) {
+        browser()
+    }
+
+    @OptIn(ExperimentalWasmDsl::class)
+    wasmWasi {
+        nodejs()
+    }
+
+    @OptIn(ExperimentalWasmDsl::class)
+    wasmJs {
+        nodejs()
+    }
+}
 
 mavenPublishing {
     coordinates(
