@@ -137,12 +137,20 @@ package com.example.mapper
 /**
  * Converts [Status] to [StatusEntity]
  */
-internal fun Status.asStatusEntity(): StatusEntity = StatusEntity.valueOf(name)
+internal fun Status.asStatusEntity(): StatusEntity = when (this) {
+    Status.ACTIVE -> StatusEntity.ACTIVE
+    Status.PENDING -> StatusEntity.PENDING
+    Status.INACTIVE -> StatusEntity.INACTIVE
+}
 
 /**
  * Converts [StatusEntity] to [Status]
  */
-internal fun StatusEntity.asStatus(): Status = Status.valueOf(name)
+internal fun StatusEntity.asStatus(): Status = when (this) {
+    StatusEntity.ACTIVE -> Status.ACTIVE
+    StatusEntity.PENDING -> Status.PENDING
+    StatusEntity.INACTIVE -> Status.INACTIVE
+}
 ```
 
 **Sealed Class Mapping:**
