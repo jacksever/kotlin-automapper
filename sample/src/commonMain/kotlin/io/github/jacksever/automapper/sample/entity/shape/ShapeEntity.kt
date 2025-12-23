@@ -32,7 +32,23 @@ sealed interface ShapeEntity {
     data class Square(val side: Double) : ShapeEntity
 
     /**
-     * A circle with a given [radius]
+     * A rectangle with a given [width] and [height]
      */
-    data class Circle(val radius: Double) : ShapeEntity
+    data class Rectangle(val width: Double, val height: Double) : ShapeEntity
+
+    /**
+     * A nested sealed interface representing shapes with rounded corners or curves
+     */
+    sealed interface Rounded : ShapeEntity {
+
+        /**
+         * A circle with a given [radius]
+         */
+        data class Circle(val radius: Double) : Rounded
+
+        /**
+         * An ellipse with a given [majorAxis] and [minorAxis]
+         */
+        data class Ellipse(val majorAxis: Double, val minorAxis: Double) : Rounded
+    }
 }

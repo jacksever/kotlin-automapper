@@ -61,7 +61,7 @@ fun main() {
 
     // --- Sealed Class Mapping ---
     println("\n3. Sealed Class Mapping (Shape <-> ShapeEntity, Shape -> UiShape):")
-    val domainShape = Shape.Circle(radius = 10.5)
+    val domainShape = Shape.Rounded.Circle(radius = 10.5)
     val entityShape = domainShape.asShapeEntity()
     val revertedShape = entityShape.asShape()
     val uiShape = domainShape.asUiShape()
