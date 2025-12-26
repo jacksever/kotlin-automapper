@@ -55,15 +55,17 @@ internal class SealedMapperBuilder(private val logger: KSPLogger) : MapperBuilde
             val targetLeaves = collectLeafSubclasses(declaration = to)
             val sourceLeaves = collectLeafSubclasses(declaration = from)
 
-            val sourceLeafNames = sourceLeaves.map { entry -> entry.simpleName.asString() }.toSet()
             val targetLeafNames = targetLeaves.map { entry -> entry.simpleName.asString() }.toSet()
+            val sourceLeafNames = sourceLeaves.map { entry -> entry.simpleName.asString() }.toSet()
 
             val missingInTarget = sourceLeafNames - targetLeafNames
             if (missingInTarget.isNotEmpty()) {
                 logger.error(
-                    message = "Cannot generate sealed mapper from ${from.simpleName.asString()} to ${to.simpleName.asString()}: " +
-                            "Target hierarchy is missing implementations for: ${missingInTarget.joinToString()}. " +
-                            "Please ensure all leaf subclasses have a matching counterpart by name",
+                    message = buildString {
+                        append("Cannot generate sealed mapper from ${from.simpleName.asString()} to ${to.simpleName.asString()}. ")
+                        append("Target hierarchy is missing implementations for: ${missingInTarget.joinToString()}. ")
+                        append("Please ensure all leaf subclasses have a matching counterpart by name")
+                    },
                     symbol = to
                 )
                 error(message = "Sealed mapping failed due to mismatched hierarchies")
