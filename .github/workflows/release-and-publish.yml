@@ -5,12 +5,10 @@ name: AutoMapper Release and Publish
 on:
   push:
     branches:
-    - 'main' # Triggers on any push to main, including merges
+    - 'main'
 
 jobs:
   release:
-    # It will only run if the commit message starts with our release phrase
-    if: startsWith(github.event.head_commit.message, 'Prepare release of Kotlin AutoMapper')
     runs-on: ubuntu-latest
     permissions:
       contents: write
