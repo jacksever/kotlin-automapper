@@ -15,11 +15,13 @@ jobs:
       contents: write
 
     steps:
+      # Checks out the repository with full history to allow branch switching
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      # Extracts the version number from the release merge commit message
       - name: Extract version from merge commit
         id: get_version
         run: |
@@ -27,6 +29,7 @@ jobs:
           VERSION=$(echo "$COMMIT_MSG" | sed 's/Prepare release of Kotlin AutoMapper //')
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
+      # Creates and pushes a new Git tag based on the extracted version
       - name: Create and push Git Tag
         run: |
           git config user.name "github-actions[bot]"
@@ -34,15 +37,18 @@ jobs:
           git tag "${{ steps.get_version.outputs.version }}"
           git push origin "${{ steps.get_version.outputs.version }}"
 
+      # Sets up the specified Java version
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
 
+      # Grants execute permission to the Gradle wrapper script
       - name: Grant execute permission for gradlew
         run: chmod +x ./gradlew
 
+#      # Publishes the library artifacts to Maven Central
 #      - name: Publish to Maven Central
 #        run: ./gradlew publishAllPublicationsToMavenCentralRepository --no-daemon --no-parallel
 #        env:
@@ -51,6 +57,7 @@ jobs:
 #          ORG_GRADLE_PROJECT_signingKey: ${{ secrets.GPG_SIGNING_KEY }}
 #          ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.GPG_SIGNING_PASSWORD }}
 
+      # Creates a GitHub Release associated with the new tag
       - name: Create GitHub Release
         uses: ncipollo/release-action@v1
         with:
@@ -58,6 +65,7 @@ jobs:
           name: '${{ steps.get_version.outputs.version }}'
           generateReleaseNotes: true
 
+      # Merges the main branch back into develop to keep it up-to-date
       - name: Sync main back to develop
         run: |
           git config user.name "github-actions[bot]"
