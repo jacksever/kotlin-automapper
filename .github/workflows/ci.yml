@@ -1,0 +1,42 @@
+# This workflow builds the project on every push and pull request to the main branch
+
+name: AutoMapper CI
+
+on:
+  pull_request:
+    branches: [ "main", "develop" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checks out the repository code so the workflow can access it
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Sets up the specified Java version required by the project
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      # Caches Gradle dependencies to speed up subsequent builds
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      # Grants execute permission to the Gradle wrapper script
+      - name: Grant execute permission for gradlew
+        run: chmod +x ./gradlew
+
+      # Runs the main build task to compile, test, and verify the project
+      - name: Build with Gradle
+        run: ./gradlew build

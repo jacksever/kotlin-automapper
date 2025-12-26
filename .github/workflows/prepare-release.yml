@@ -1,0 +1,53 @@
+# This workflow prepares a new release by creating a pull request from 'develop' to 'main'
+
+name: AutoMapper Prepare Release
+
+on:
+  # Allows this workflow to be triggered manually from the Actions tab
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'The version to release (e.g., 1.0.0)'
+        required: true
+
+jobs:
+  prepare-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      # Checks out the 'develop' branch to get the latest changes
+      - name: Checkout develop branch
+        uses: actions/checkout@v4
+        with:
+          ref: 'develop'
+
+      # Creates a new release branch from the 'develop' branch
+      - name: Create release branch from develop
+        run: |
+          git checkout -b "release/${{ github.event.inputs.version }}"
+
+      # Updates version numbers in Gradle Build files and README.md
+      - name: Update version in build files and README
+        run: |
+          VERSION=${{ github.event.inputs.version }}
+          sed -i "s/^version = \".*\"/version = \"$VERSION\"/" automapper/processor/build.gradle.kts
+          sed -i "s/^version = \".*\"/version = \"$VERSION\"/" automapper/annotation/build.gradle.kts
+          sed -i -r "s/(io\.github\.jacksever\.automapper:[^:]*:)[0-9]+\.[0-9]+\.[0-9]+(.*)/\1$VERSION\2/g" README.md
+
+      # Commits the version changes and pushes the new release branch
+      - name: Commit and Push changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "Prepare release of Kotlin AutoMapper ${{ github.event.inputs.version }}"
+          git push -u origin "release/${{ github.event.inputs.version }}"
+
+      # Creates a pull request from the release branch to the main branch
+      - name: Create Pull Request to main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr create --base "main" --head "release/${{ github.event.inputs.version }}" --title "Prepare release of Kotlin AutoMapper ${{ github.event.inputs.version }}" --body "This PR integrates changes from develop into main for the ${{ github.event.inputs.version }} release" --reviewer "${{ github.actor }}"

@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "io.github.jacksever.automapper"
-version = "0.2.0"
+version = "0.2.12"
 
 kotlin {
     jvm()
@@ -14,17 +14,22 @@ kotlin {
     iosArm64()
     iosSimulatorArm64()
     js(IR) {
+        nodejs()
         browser()
+        binaries.executable()
     }
 
     @OptIn(ExperimentalWasmDsl::class)
     wasmWasi {
         nodejs()
+        binaries.executable()
     }
 
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
         nodejs()
+        browser()
+        binaries.executable()
     }
 }
 

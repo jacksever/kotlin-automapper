@@ -11,17 +11,22 @@ kotlin {
     iosArm64()
     iosSimulatorArm64()
     js(IR) {
+        nodejs()
         browser()
+        binaries.executable()
     }
 
     @OptIn(ExperimentalWasmDsl::class)
     wasmWasi {
         nodejs()
+        binaries.executable()
     }
 
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
         nodejs()
+        browser()
+        binaries.executable()
     }
 
     sourceSets {

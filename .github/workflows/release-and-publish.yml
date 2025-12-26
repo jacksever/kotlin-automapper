@@ -1,0 +1,67 @@
+# This workflow creates a tag, publishes to Maven Central, and creates a GitHub Release
+
+name: AutoMapper Release and Publish
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  release:
+    # This condition checks the merge commit message to ensure the job only runs for release merges
+    if: contains(github.event.head_commit.message, 'Prepare release of Kotlin AutoMapper')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      # Checks out the repository with full history to allow branch switching
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Extracts the version number from the release merge commit message
+      - name: Extract version from merge commit
+        id: get_version
+        run: |
+          COMMIT_MSG="${{ github.event.head_commit.message }}"
+          VERSION=$(echo "$COMMIT_MSG" | sed 's/Prepare release of Kotlin AutoMapper //')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      # Creates and pushes a new Git tag based on the extracted version
+      - name: Create and push Git Tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "${{ steps.get_version.outputs.version }}"
+          git push origin "${{ steps.get_version.outputs.version }}"
+
+      # Sets up the specified Java version
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      # Grants execute permission to the Gradle wrapper script
+      - name: Grant execute permission for gradlew
+        run: chmod +x ./gradlew
+
+      # Publishes the library artifacts to Maven Central
+      - name: Publish Artifacts to Maven Central
+        run: ./gradlew publishAllPublicationsToMavenCentralRepository
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.SONATYPE_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.SONATYPE_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_IN_MEMORY_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.SIGNING_KEY_ID }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
+
+      # Creates a GitHub Release associated with the new tag
+      - name: Create GitHub Release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: '${{ steps.get_version.outputs.version }}'
+          name: '${{ steps.get_version.outputs.version }}'
+          generateReleaseNotes: true
