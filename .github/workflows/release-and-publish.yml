@@ -4,8 +4,7 @@ name: AutoMapper Release and Publish
 
 on:
   push:
-    branches:
-    - 'main'
+    branches: [ "main" ]
 
 jobs:
   release:
