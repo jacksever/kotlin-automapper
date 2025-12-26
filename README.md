@@ -30,16 +30,16 @@ Ensure you have the `ksp` plugin applied in your module's `build.gradle.kts` fil
      sourceSets {
          commonMain.dependencies {
              // 1. Add the annotation dependency to commonMain
-             implementation("io.github.jacksever.automapper:annotation:0.2.5")
+             implementation("io.github.jacksever.automapper:annotation:0.2.7")
          }
      }
  }
 
  // 2. Apply the processor to the targets you need
  dependencies {
-     add("kspJs", "io.github.jacksever.automapper:processor:0.2.5")
-     add("kspJvm", "io.github.jacksever.automapper:processor:0.2.5")
-     add("kspIosX64", "io.github.jacksever.automapper:processor:0.2.5")
+     add("kspJs", "io.github.jacksever.automapper:processor:0.2.7")
+     add("kspJvm", "io.github.jacksever.automapper:processor:0.2.7")
+     add("kspIosX64", "io.github.jacksever.automapper:processor:0.2.7")
      // etc. for your other targets
  }
  ```
@@ -51,10 +51,10 @@ In a standard Android or JVM module, you can add the dependencies directly.
  ```kotlin
  dependencies {
      // Annotation dependency
-     implementation("io.github.jacksever.automapper:annotation:0.2.5")
+     implementation("io.github.jacksever.automapper:annotation:0.2.7")
 
      // KSP processor
-     ksp("io.github.jacksever.automapper:processor:0.2.5")
+     ksp("io.github.jacksever.automapper:processor:0.2.7")
  }
  ```
 

@@ -21,6 +21,10 @@ jobs:
         with:
           ref: 'develop'
 
+      - name: Create release branch from develop
+        run: |
+          git checkout -b "release/${{ github.event.inputs.version }}"
+
       - name: Update version in build files and README
         run: |
           VERSION=${{ github.event.inputs.version }}
@@ -31,14 +35,16 @@ jobs:
           # Update dependency versions in README.md using a robust regex
           sed -i -r "s/(io\.github\.jacksever\.automapper:[^:]*:)[0-9]+\.[0-9]+\.[0-9]+(.*)/\1$VERSION\2/g" README.md
 
+      - name: Commit and Push changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "Prepare release of Kotlin AutoMapper ${{ github.event.inputs.version }}"
+          git push -u origin "release/${{ github.event.inputs.version }}"
+
       - name: Create Pull Request to main
-        uses: peter-evans/create-pull-request@v6
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "Prepare release of Kotlin AutoMapper ${{ github.event.inputs.version }}"
-          title: "Prepare release of Kotlin AutoMapper ${{ github.event.inputs.version }}"
-          body: "This PR integrates changes from `develop` into `main` for the ${{ github.event.inputs.version }} release"
-          branch: "release/${{ github.event.inputs.version }}"
-          base: "main"
-          reviewers: ${{ github.actor }}
-          delete-branch: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr create --base "main" --head "release/${{ github.event.inputs.version }}" --title "Prepare release of Kotlin AutoMapper ${{ github.event.inputs.version }}" --body "This PR integrates changes from `develop` into `main` for the ${{ github.event.inputs.version }} release" --reviewer "${{ github.actor }}"

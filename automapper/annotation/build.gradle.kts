@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "io.github.jacksever.automapper"
-version = "0.2.5"
+version = "0.2.7"
 
 kotlin {
     jvm()
