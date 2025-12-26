@@ -1,0 +1,60 @@
+# This workflow creates a tag, publishes to Maven Central, and creates a GitHub Release
+
+name: AutoMapper Release and Publish
+
+on:
+  push:
+    branches:
+    - 'main' # Triggers on any push to main, including merges
+
+jobs:
+  release:
+    # This condition ensures the job only runs for merge commits from a release branch
+    if: startsWith(github.event.head_commit.message, 'Merge pull request') && contains(github.event.head_commit.message, '/release/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract version from merge commit
+        id: get_version
+        run: |
+          COMMIT_MSG="${{ github.event.head_commit.message }}"
+          VERSION=$(echo "$COMMIT_MSG" | sed -n 's/.*\/release\/\([0-9.]*\).*/\1/p')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create and push Git Tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "${{ steps.get_version.outputs.version }}"
+          git push origin "${{ steps.get_version.outputs.version }}"
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x ./gradlew
+
+#      - name: Publish to Maven Central
+#        run: ./gradlew publishAllPublicationsToMavenCentralRepository --no-daemon --no-parallel
+#        env:
+#          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.OSSRH_USERNAME }}
+#          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.OSSRH_TOKEN }}
+#          ORG_GRADLE_PROJECT_signingKey: ${{ secrets.GPG_SIGNING_KEY }}
+#          ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.GPG_SIGNING_PASSWORD }}
+
+      - name: Create GitHub Release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: '${{ steps.get_version.outputs.version }}'
+          name: '${{ steps.get_version.outputs.version }}'
+          generateReleaseNotes: true

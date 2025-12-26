@@ -1,0 +1,41 @@
+# This workflow prepares a new release by creating a pull request from 'develop' to 'main'.
+
+name: AutoMapper Prepare Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'The version to release (e.g., 1.0.0)'
+        required: true
+
+jobs:
+  prepare-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout develop branch
+        uses: actions/checkout@v4
+        with:
+          ref: 'develop'
+
+      - name: Update version in build files and README
+        run: |
+          VERSION=${{ github.event.inputs.version }}
+          # Update version in processor/build.gradle.kts
+          sed -i "s/^version = \".*\"/version = \"$VERSION\"/" automapper/processor/build.gradle.kts
+          # Update version in annotation/build.gradle.kts
+          sed -i "s/^version = \".*\"/version = \"$VERSION\"/" automapper/annotation/build.gradle.kts
+          # Update dependency versions in README.md
+          sed -i 's/\(io\.github\.jacksever\.automapper:[^:]*:\)[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*/\1$VERSION/g' README.md
+
+      - name: Create Pull Request to main
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "Prepare release of Kotlin AutoMapper ${{ github.event.inputs.version }}"
+          title: "Prepare release of Kotlin AutoMapper ${{ github.event.inputs.version }}"
+          body: "This PR integrates changes from `develop` into `main` for the ${{ github.event.inputs.version }} release"
+          branch: "release/${{ github.event.inputs.version }}"
+          base: "main"
+          reviewers: ${{ github.actor }}
+          delete-branch: true

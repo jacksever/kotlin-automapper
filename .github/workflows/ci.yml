@@ -1,12 +1,10 @@
 # This workflow builds the project on every push and pull request to the main branch
 
-name: AutoMapper CI Pipeline
+name: AutoMapper CI
 
 on:
-  push:
-    branches: [ "main" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "develop" ]
 
 jobs:
   build:
