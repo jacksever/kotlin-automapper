@@ -10,7 +10,7 @@ on:
 jobs:
   release:
     # This condition ensures the job only runs for merge commits from a release branch
-    if: startsWith(github.event.head_commit.message, 'Merge pull request') && contains(github.event.head_commit.message, '/release/')
+    if: startsWith(github.event.pull_request.title, 'Prepare release of Kotlin AutoMapper')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -25,7 +25,7 @@ jobs:
         id: get_version
         run: |
           COMMIT_MSG="${{ github.event.head_commit.message }}"
-          VERSION=$(echo "$COMMIT_MSG" | sed -n 's/.*\/release\/\([0-9.]*\).*/\1/p')
+          VERSION=$(echo "$COMMIT_MSG" | sed 's/Prepare release of Kotlin AutoMapper //')
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Create and push Git Tag
