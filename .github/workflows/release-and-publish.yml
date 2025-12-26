@@ -57,3 +57,11 @@ jobs:
           tag: '${{ steps.get_version.outputs.version }}'
           name: '${{ steps.get_version.outputs.version }}'
           generateReleaseNotes: true
+
+      - name: Sync main back to develop
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout develop
+          git merge main --no-edit
+          git push origin develop
