@@ -9,8 +9,8 @@ on:
 
 jobs:
   release:
-    # This condition ensures the job only runs for merge commits from a release branch
-    if: startsWith(github.event.pull_request.title, 'Prepare release of Kotlin AutoMapper')
+    # It will only run if the commit message starts with our release phrase
+    if: startsWith(github.event.head_commit.message, 'Prepare release of Kotlin AutoMapper')
     runs-on: ubuntu-latest
     permissions:
       contents: write
