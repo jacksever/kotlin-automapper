@@ -28,8 +28,8 @@ jobs:
           sed -i "s/^version = \".*\"/version = \"$VERSION\"/" automapper/processor/build.gradle.kts
           # Update version in annotation/build.gradle.kts
           sed -i "s/^version = \".*\"/version = \"$VERSION\"/" automapper/annotation/build.gradle.kts
-          # Update dependency versions in README.md
-          sed -i 's/\(io\.github\.jacksever\.automapper:[^:]*:\)[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*/\1$VERSION/g' README.md
+          # Update dependency versions in README.md using a robust regex
+          sed -i -r "s/(io\.github\.jacksever\.automapper:[^:]*:)[0-9]+\.[0-9]+\.[0-9]+(.*)/\1$VERSION\2/g" README.md
 
       - name: Create Pull Request to main
         uses: peter-evans/create-pull-request@v6
