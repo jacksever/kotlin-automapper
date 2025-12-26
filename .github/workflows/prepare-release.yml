@@ -1,4 +1,4 @@
-# This workflow prepares a new release by creating a pull request from 'develop' to 'main'.
+# This workflow prepares a new release by creating a pull request from 'develop' to 'main'
 
 name: AutoMapper Prepare Release
 
