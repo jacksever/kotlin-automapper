@@ -1,6 +1,6 @@
 # This workflow builds the project on every push and pull request to the main branch
 
-name: Build and Verify
+name: AutoMapper CI Pipeline
 
 on:
   push:
