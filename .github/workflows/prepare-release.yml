@@ -47,9 +47,4 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh pr create \\
-            --base "main" \\
-            --head "release/${{ github.event.inputs.version }}" \\
-            --title "Prepare release of Kotlin AutoMapper ${{ github.event.inputs.version }}" \\
-            --body "This PR integrates changes from `develop` into `main` for the ${{ github.event.inputs.version }} release." \\
-            --reviewer "${{ github.actor }}"
+          gh pr create --base "main" --head "release/${{ github.event.inputs.version }}" --title "Prepare release of Kotlin AutoMapper ${{ github.event.inputs.version }}" --body "This PR integrates changes from `develop` into `main` for the ${{ github.event.inputs.version }} release" --reviewer "${{ github.actor }}"
