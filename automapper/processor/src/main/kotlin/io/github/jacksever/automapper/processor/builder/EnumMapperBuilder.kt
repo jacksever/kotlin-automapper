@@ -16,6 +16,8 @@
 
 package io.github.jacksever.automapper.processor.builder
 
+import com.google.devtools.ksp.processing.KSPLogger
+import com.google.devtools.ksp.symbol.ClassKind
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.buildCodeBlock
@@ -24,21 +26,62 @@ import com.squareup.kotlinpoet.ksp.toClassName
 /**
  * Strategy for generating mapping code for Enum classes
  *
- * This builder assumes that the source and target Enums have constants with identical names.
- * It maps the enum using `TargetEnum.valueOf(name)`
+ * This builder generates an exhaustive `when` expression. If a source enum constant has a matching
+ * counterpart in the target enum, it's mapped directly. If not, a runtime
+ * [IllegalArgumentException] is thrown for that specific constant, ensuring that the
+ * mapping is safe at compile time and provides clear feedback at runtime for unmapped values
  */
-internal class EnumMapperBuilder : MapperBuilder {
+internal class EnumMapperBuilder(private val logger: KSPLogger) : MapperBuilder {
 
     /**
-     * Generates a `valueOf` call for the target Enum using the source Enum's name
+     * Generates an exhaustive `when` expression for the mapping
      *
-     * Example output:
+     * Example output for a missing constant:
      * ```
-     * return TargetEnum.valueOf(name)
+     * return when (this) {
+     *     SourceEnum.ACTIVE -> TargetEnum.ACTIVE
+     *     SourceEnum.DELETED -> throw IllegalArgumentException("Enum constant ... has no matching constant ...")
+     * }
      * ```
      */
     override fun buildConversion(from: KSClassDeclaration, to: KSClassDeclaration): CodeBlock =
         buildCodeBlock {
-            addStatement("return %T.valueOf(name)", to.toClassName())
+            val fromEntries = from.declarations
+                .filterIsInstance<KSClassDeclaration>()
+                .filter { declaration -> declaration.classKind == ClassKind.ENUM_ENTRY }
+                .map { entry -> entry.simpleName.asString() }
+                .toSet()
+
+            val toEntries = to.declarations
+                .filterIsInstance<KSClassDeclaration>()
+                .filter { declaration -> declaration.classKind == ClassKind.ENUM_ENTRY }
+                .map { entry -> entry.simpleName.asString() }
+                .toSet()
+
+            beginControlFlow(controlFlow = "return when (this)")
+            fromEntries.forEach { entryName ->
+                if (entryName in toEntries) {
+                    addStatement(
+                        "%T.%L -> %T.%L",
+                        from.toClassName(),
+                        entryName,
+                        to.toClassName(),
+                        entryName
+                    )
+                } else {
+                    val errorMessage =
+                        "Enum constant ${from.simpleName.asString()}.$entryName has no matching constant in ${to.simpleName.asString()}"
+                    logger.warn(message = errorMessage, symbol = from)
+
+                    addStatement(
+                        "%T.%L -> throw %T(%S)",
+                        from.toClassName(),
+                        entryName,
+                        IllegalArgumentException::class,
+                        errorMessage
+                    )
+                }
+            }
+            endControlFlow()
         }
 }
