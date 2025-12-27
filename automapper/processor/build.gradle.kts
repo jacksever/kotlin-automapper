@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "io.github.jacksever.automapper"
-version = "0.2.12"
+version = "0.3.0"
 
 mavenPublishing {
     coordinates(
