@@ -30,16 +30,16 @@ Ensure you have the `ksp` plugin applied in your module's `build.gradle.kts` fil
      sourceSets {
          commonMain.dependencies {
              // 1. Add the annotation dependency to commonMain
-             implementation("io.github.jacksever.automapper:annotation:0.2.12")
+             implementation("io.github.jacksever.automapper:annotation:0.3.0")
          }
      }
  }
 
  // 2. Apply the processor to the targets you need
  dependencies {
-     add("kspJs", "io.github.jacksever.automapper:processor:0.2.12")
-     add("kspJvm", "io.github.jacksever.automapper:processor:0.2.12")
-     add("kspIosX64", "io.github.jacksever.automapper:processor:0.2.12")
+     add("kspJs", "io.github.jacksever.automapper:processor:0.3.0")
+     add("kspJvm", "io.github.jacksever.automapper:processor:0.3.0")
+     add("kspIosX64", "io.github.jacksever.automapper:processor:0.3.0")
      // etc. for your other targets
  }
  ```
@@ -51,10 +51,10 @@ In a standard Android or JVM module, you can add the dependencies directly.
  ```kotlin
  dependencies {
      // Annotation dependency
-     implementation("io.github.jacksever.automapper:annotation:0.2.12")
+     implementation("io.github.jacksever.automapper:annotation:0.3.0")
 
      // KSP processor
-     ksp("io.github.jacksever.automapper:processor:0.2.12")
+     ksp("io.github.jacksever.automapper:processor:0.3.0")
  }
  ```
 
@@ -137,12 +137,20 @@ package com.example.mapper
 /**
  * Converts [Status] to [StatusEntity]
  */
-internal fun Status.asStatusEntity(): StatusEntity = StatusEntity.valueOf(name)
+internal fun Status.asStatusEntity(): StatusEntity = when (this) {
+    Status.ACTIVE -> StatusEntity.ACTIVE
+    Status.PENDING -> StatusEntity.PENDING
+    Status.INACTIVE -> StatusEntity.INACTIVE
+}
 
 /**
  * Converts [StatusEntity] to [Status]
  */
-internal fun StatusEntity.asStatus(): Status = Status.valueOf(name)
+internal fun StatusEntity.asStatus(): Status = when (this) {
+    StatusEntity.ACTIVE -> Status.ACTIVE
+    StatusEntity.PENDING -> Status.PENDING
+    StatusEntity.INACTIVE -> Status.INACTIVE
+}
 ```
 
 **Sealed Class Mapping:**

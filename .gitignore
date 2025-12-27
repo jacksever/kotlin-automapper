@@ -74,6 +74,7 @@ google-services.json
 .idea/other.xml
 .idea/markdown.xml
 .idea/androidTestResultsUserPreferences.xml
+.idea/studiobot.xml
 
 # Sensitive or high-churn files
 .idea/**/dataSources/

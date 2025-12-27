@@ -26,16 +26,19 @@ import com.squareup.kotlinpoet.ksp.toClassName
 import io.github.jacksever.automapper.processor.helper.ParameterHelper.buildConstructorParameters
 
 /**
- * Strategy for generating mapping code for Sealed classes (and interfaces)
+ * Strategy for generating mapping code for Sealed classes and interfaces
  *
- * This builder handles class hierarchies by generating a exhaustive `when(this)` expression.
- * It recursively finds all "leaf" subclasses (objects or concrete classes) of the source sealed class
- * and attempts to find a matching subclass in the target sealed class hierarchy by simple name
+ * This builder ensures that both the source and target sealed hierarchies have a matching structure.
+ * It recursively finds all "leaf" subclasses (objects or concrete classes) and verifies that
+ * each source leaf has a corresponding target leaf with the same simple name
+ *
+ * If the hierarchies do not match, the build is failed with a clear error, preventing the generation
+ * of a non-exhaustive `when` expression and ensuring compile-time safety
  */
 internal class SealedMapperBuilder(private val logger: KSPLogger) : MapperBuilder {
 
     /**
-     * Generates a `when` expression to map each subclass of the source sealed hierarchy
+     * Validates the sealed hierarchies and generates an exhaustive `when` expression if they match
      *
      * Example output:
      * ```
@@ -49,34 +52,43 @@ internal class SealedMapperBuilder(private val logger: KSPLogger) : MapperBuilde
      */
     override fun buildConversion(from: KSClassDeclaration, to: KSClassDeclaration): CodeBlock =
         buildCodeBlock {
-            beginControlFlow("return when(this)")
+            val targetLeaves = collectLeafSubclasses(declaration = to)
+            val sourceLeaves = collectLeafSubclasses(declaration = from)
 
-            val leaves = collectLeafSubclasses(declaration = from)
-            logger.info("SealedMapperBuilder: Found ${leaves.size} leaf subclasses for sealed class ${from.simpleName.asString()}")
+            val targetLeafNames = targetLeaves.map { entry -> entry.simpleName.asString() }.toSet()
+            val sourceLeafNames = sourceLeaves.map { entry -> entry.simpleName.asString() }.toSet()
 
-            leaves.forEach { subSource ->
-                val subTarget = findMatchingSubclass(sourceSub = subSource, targetRoot = to)
-
-                if (subTarget != null) {
-                    if (subSource.classKind == ClassKind.OBJECT) {
-                        addStatement("%T -> %T", subSource.toClassName(), subTarget.toClassName())
-                    } else {
-                        val params = buildConstructorParameters(
-                            sourceClass = subSource,
-                            targetClass = subTarget,
-                        )
-
-                        add("is %T -> %T(\n", subSource.toClassName(), subTarget.toClassName())
-                        indent()
-                        params.forEach { param -> addStatement("$param,") }
-                        unindent()
-                        add(")\n")
-                    }
-                } else {
-                    logger.warn("SealedMapperBuilder: No matching subclass found in ${to.simpleName.asString()} for ${subSource.simpleName.asString()}")
-                }
+            val missingInTarget = sourceLeafNames - targetLeafNames
+            if (missingInTarget.isNotEmpty()) {
+                logger.error(
+                    message = buildString {
+                        append("Cannot generate sealed mapper from ${from.simpleName.asString()} to ${to.simpleName.asString()}. ")
+                        append("Target hierarchy is missing implementations for: ${missingInTarget.joinToString()}. ")
+                        append("Please ensure all leaf subclasses have a matching counterpart by name")
+                    },
+                    symbol = to
+                )
+                error(message = "Sealed mapping failed due to mismatched hierarchies")
             }
 
+            beginControlFlow(controlFlow = "return when (this)")
+            sourceLeaves.forEach { source ->
+                val targetSub =
+                    targetLeaves.first { target -> target.simpleName == source.simpleName }
+
+                if (source.classKind == ClassKind.OBJECT) {
+                    addStatement("%T -> %T", source.toClassName(), targetSub.toClassName())
+                } else {
+                    val params =
+                        buildConstructorParameters(sourceClass = source, targetClass = targetSub)
+
+                    add("is %T -> %T(\n", source.toClassName(), targetSub.toClassName())
+                    indent()
+                    params.forEach { param -> addStatement("$param,") }
+                    unindent()
+                    add(")\n")
+                }
+            }
             endControlFlow()
         }
 
@@ -88,41 +100,8 @@ internal class SealedMapperBuilder(private val logger: KSPLogger) : MapperBuilde
             return listOf(declaration)
         }
 
-        var subclasses = declaration.getSealedSubclasses().toList()
-
-        if (subclasses.isEmpty()) {
-            subclasses = declaration.declarations
-                .filterIsInstance<KSClassDeclaration>()
-                .filter { nested ->
-                    nested.superTypes.any { type ->
-                        type.resolve().declaration.qualifiedName == declaration.qualifiedName
-                    }
-                }
-                .toList()
-        }
-
-        return subclasses.flatMap(::collectLeafSubclasses)
-    }
-
-    /**
-     * Finds a subclass in the [targetRoot] hierarchy that matches the [sourceSub] by simple name
-     */
-    private fun findMatchingSubclass(
-        sourceSub: KSClassDeclaration,
-        targetRoot: KSClassDeclaration
-    ): KSClassDeclaration? {
-        val sourceName = sourceSub.simpleName.asString()
-
-        return findAllNestedClasses(declaration = targetRoot)
-            .firstOrNull { nestedClass -> nestedClass.simpleName.asString() == sourceName }
-    }
-
-    /**
-     * Recursively collects all nested classes within a class declaration
-     */
-    private fun findAllNestedClasses(declaration: KSClassDeclaration): Sequence<KSClassDeclaration> {
-        val nested = declaration.declarations.filterIsInstance<KSClassDeclaration>()
-
-        return nested + nested.flatMap(::findAllNestedClasses)
+        return declaration.getSealedSubclasses()
+            .toList()
+            .flatMap(transform = ::collectLeafSubclasses)
     }
 }
