@@ -17,14 +17,14 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      # Checks out the 'develop' branch to get the latest changes
-      - name: Checkout develop branch
+      # Checks out the 'main' branch to get the latest changes
+      - name: Checkout main branch
         uses: actions/checkout@v4
         with:
-          ref: 'develop'
+          ref: 'main'
 
-      # Creates a new release branch from the 'develop' branch
-      - name: Create release branch from develop
+      # Creates a new release branch from the 'main' branch
+      - name: Create release branch from main
         run: |
           git checkout -b "release/${{ github.event.inputs.version }}"
 
@@ -50,4 +50,4 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh pr create --base "main" --head "release/${{ github.event.inputs.version }}" --title "Prepare release of Kotlin AutoMapper ${{ github.event.inputs.version }}" --body "This PR integrates changes from develop into main for the ${{ github.event.inputs.version }} release" --reviewer "${{ github.actor }}"
+          gh pr create --base "main" --head "release/${{ github.event.inputs.version }}" --title "Prepare release of Kotlin AutoMapper ${{ github.event.inputs.version }}" --body "This PR is preparing the release of a new version of the Kotlin AutoMapper library ${{ github.event.inputs.version }}" --reviewer "${{ github.actor }}"
