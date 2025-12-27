@@ -4,7 +4,7 @@ name: AutoMapper CI
 
 on:
   pull_request:
-    branches: [ "main", "develop" ]
+    branches: [ "main" ]
 
 jobs:
   build:
@@ -40,3 +40,7 @@ jobs:
       # Runs the main build task to compile, test, and verify the project
       - name: Build with Gradle
         run: ./gradlew build
+
+      # Gradle Daemon Cleanup
+      - name: Gradle Daemon Cleanup
+        run: ./gradlew --stop
