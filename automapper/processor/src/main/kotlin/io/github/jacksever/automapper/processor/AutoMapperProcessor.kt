@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Alexander Gorodnikov
+ * Copyright (c) 2026 Alexander Gorodnikov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,6 +34,7 @@ import com.squareup.kotlinpoet.ksp.toClassName
 import com.squareup.kotlinpoet.ksp.writeTo
 import io.github.jacksever.automapper.annotation.AutoMapper
 import io.github.jacksever.automapper.annotation.AutoMapperModule
+import io.github.jacksever.automapper.annotation.PropertyMapping
 import io.github.jacksever.automapper.processor.builder.MapperBuilderFactory
 import io.github.jacksever.automapper.processor.model.MapperDefinition
 
@@ -91,15 +92,12 @@ internal class AutoMapperProcessor(
         logger.info("AutoMapperProcessor: Round processing finished successfully")
 
         invalidSymbols
-    }.fold(
-        onSuccess = { symbols -> symbols },
-        onFailure = { throwable ->
-            logger.error("AutoMapperProcessor: Critical error during processing: ${throwable.message}")
-            throwable.printStackTrace()
+    }.getOrElse { throwable ->
+        logger.error("AutoMapperProcessor: Critical error during processing: ${throwable.message}")
+        throwable.printStackTrace()
 
-            emptyList()
-        }
-    )
+        emptyList()
+    }
 
     /**
      * Parses a single `@AutoMapper` annotated function into a [MapperDefinition]
@@ -117,20 +115,34 @@ internal class AutoMapperProcessor(
         val reversible = mapperAnnotation.arguments
             .firstOrNull { args -> args.name?.asString() == "reversible" }
             ?.value as? Boolean ?: true
+        val mappings = mapperAnnotation.arguments
+            .firstOrNull { args -> args.name?.asString() == "mappings" }
+            ?.value as? List<*>
 
-        check(parameters.size == 1) {
+        val propertyMappings = mappings
+            ?.mapNotNull { mapping -> mapping as? KSAnnotation }
+            ?.map { annotation ->
+                val from =
+                    annotation.arguments.first { args -> args.name?.asString() == "from" }.value as String
+                val to =
+                    annotation.arguments.first { args -> args.name?.asString() == "to" }.value as String
+
+                PropertyMapping(from = from, to = to)
+            } ?: emptyList()
+
+        check(value = parameters.size == 1) {
             "Function '$functionName' annotated with @AutoMapper must have exactly one parameter representing the source object"
         }
 
         val sourceParam = parameters.first()
         val sourceType = sourceParam.type.resolve()
-        val targetType = requireNotNull(function.returnType?.resolve()) {
+        val targetType = requireNotNull(value = function.returnType?.resolve()) {
             "Function '$functionName' annotated with @AutoMapper must declare a return type representing the target object"
         }
-        val sourceClass = requireNotNull(sourceType.declaration as? KSClassDeclaration) {
+        val sourceClass = requireNotNull(value = sourceType.declaration as? KSClassDeclaration) {
             "Source type '${sourceType}' in function '$functionName' must be a class"
         }
-        val targetClass = requireNotNull(targetType.declaration as? KSClassDeclaration) {
+        val targetClass = requireNotNull(value = targetType.declaration as? KSClassDeclaration) {
             "Target type '${targetType}' in function '$functionName' must be a class"
         }
 
@@ -138,6 +150,7 @@ internal class AutoMapperProcessor(
             source = sourceClass,
             target = targetClass,
             reversible = reversible,
+            propertyMappings = propertyMappings,
         )
     }.onFailure { throwable ->
         logger.error(
@@ -242,12 +255,16 @@ internal class AutoMapperProcessor(
                             logger = logger,
                             source = definition.source,
                             target = definition.target,
+                            propertyMappings = definition.propertyMappings,
                         ).buildConversion(from = definition.source, to = definition.target)
                     )
 
             fileSpecBuilder.addFunction(funSpec = sourceToTargetFunBuilder.build())
 
             if (definition.reversible) {
+                val reversedMappings = definition.propertyMappings.map { mapping ->
+                    PropertyMapping(from = mapping.to, to = mapping.from)
+                }
                 val targetToSourceFunBuilder =
                     FunSpec.builder(name = "as${sourceClassName.simpleName}")
                         .addModifiers(visibilityModifier)
@@ -259,6 +276,7 @@ internal class AutoMapperProcessor(
                                 logger = logger,
                                 source = definition.target,
                                 target = definition.source,
+                                propertyMappings = reversedMappings,
                             ).buildConversion(from = definition.target, to = definition.source)
                         )
 
