@@ -17,17 +17,14 @@
 package io.github.jacksever.automapper.annotation
 
 /**
- * Marks a function as a mapping definition for the AutoMapper processor
+ * Defines a single mapping rule for a property with a different name
  *
- * This annotation should be applied to a function inside an interface marked with [AutoMapperModule]
- *
- * @property reversible if `true` (default), the processor will also generate a reverse mapping function
- * (Target -> Source) in addition to the direct mapping (Source -> Target). If `false`, only the direct mapping is generated
- * @property mappings array of [PropertyMapping] rules to handle properties with different names
+ * @property from name of the property in the source class
+ * @property to name of the property in the target class
  */
-@Target(AnnotationTarget.FUNCTION)
+@Target()
 @Retention(AnnotationRetention.SOURCE)
-annotation class AutoMapper(
-    val reversible: Boolean = true,
-    val mappings: Array<PropertyMapping> = [],
+annotation class PropertyMapping(
+    val from: String,
+    val to: String,
 )

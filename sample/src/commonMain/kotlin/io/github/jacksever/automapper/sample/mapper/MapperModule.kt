@@ -18,6 +18,7 @@ package io.github.jacksever.automapper.sample.mapper
 
 import io.github.jacksever.automapper.annotation.AutoMapper
 import io.github.jacksever.automapper.annotation.AutoMapperModule
+import io.github.jacksever.automapper.annotation.PropertyMapping
 import io.github.jacksever.automapper.sample.domain.shape.Shape
 import io.github.jacksever.automapper.sample.domain.status.Status
 import io.github.jacksever.automapper.sample.domain.user.User
@@ -39,7 +40,11 @@ internal interface MapperModule {
     /**
      * The processor will generate `User.asUserEntity()` and `UserEntity.asUser()` extensions
      */
-    @AutoMapper
+    @AutoMapper(
+        mappings = [
+            PropertyMapping(from = "id", to = "userId")
+        ]
+    )
     fun userMapper(user: User): UserEntity
 
     /**

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Alexander Gorodnikov
+ * Copyright (c) 2026 Alexander Gorodnikov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,8 @@ import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.symbol.ClassKind
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.Modifier
+import io.github.jacksever.automapper.annotation.PropertyMapping
+import kotlin.math.log
 
 /**
  * Factory for creating [MapperBuilder] instances based on the source and target types
@@ -39,12 +41,14 @@ internal object MapperBuilderFactory {
      * @param logger logger for reporting information or warnings during builder creation
      * @param source source class declaration
      * @param target target class declaration
+     * @param propertyMappings list of custom property mappings
      * @return Concrete implementation of [MapperBuilder]
      */
     fun getMapperBuilder(
         logger: KSPLogger,
         source: KSClassDeclaration,
         target: KSClassDeclaration,
+        propertyMappings: List<PropertyMapping>,
     ): MapperBuilder {
         val isSourceEnum = source.classKind == ClassKind.ENUM_CLASS
         val isTargetEnum = target.classKind == ClassKind.ENUM_CLASS
@@ -53,9 +57,9 @@ internal object MapperBuilderFactory {
         val isTargetSealed = target.modifiers.contains(Modifier.SEALED)
 
         return when {
-            isSourceEnum && isTargetEnum -> EnumMapperBuilder(logger)
-            isSourceSealed && isTargetSealed -> SealedMapperBuilder(logger)
-            else -> DataMapperBuilder()
+            isSourceEnum && isTargetEnum -> EnumMapperBuilder(logger = logger)
+            isSourceSealed && isTargetSealed -> SealedMapperBuilder(logger = logger)
+            else -> DataMapperBuilder(propertyMappings = propertyMappings)
         }
     }
 }

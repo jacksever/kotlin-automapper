@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Alexander Gorodnikov
+ * Copyright (c) 2026 Alexander Gorodnikov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,18 +20,19 @@ import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.buildCodeBlock
 import com.squareup.kotlinpoet.ksp.toClassName
+import io.github.jacksever.automapper.annotation.PropertyMapping
 import io.github.jacksever.automapper.processor.helper.ParameterHelper.buildConstructorParameters
 
 /**
  * Strategy for generating mapping code for data classes
  *
  * This builder generates a constructor call for the target class, passing arguments derived from
- * the source class properties
+ * the source class properties. It now supports custom mappings for properties with different names
  */
-internal class DataMapperBuilder : MapperBuilder {
+internal class DataMapperBuilder(private val propertyMappings: List<PropertyMapping>) : MapperBuilder {
 
     /**
-     * Generates a constructor call for the target class
+     * Generates a constructor call for the target class, applying custom property mappings
      *
      * Example output:
      * ```
@@ -43,7 +44,12 @@ internal class DataMapperBuilder : MapperBuilder {
      */
     override fun buildConversion(from: KSClassDeclaration, to: KSClassDeclaration): CodeBlock =
         buildCodeBlock {
-            val params = buildConstructorParameters(sourceClass = from, targetClass = to)
+            val customMappings = propertyMappings.associate { mapping -> mapping.to to mapping.from }
+            val params = buildConstructorParameters(
+                sourceClass = from,
+                targetClass = to,
+                customMappings = customMappings,
+            )
 
             add("return %T(\n", to.toClassName())
             indent()

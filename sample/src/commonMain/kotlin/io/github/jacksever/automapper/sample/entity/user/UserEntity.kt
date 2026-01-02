@@ -21,13 +21,13 @@ import io.github.jacksever.automapper.sample.entity.status.StatusEntity
 /**
  * Represents a User in the data (e.g., database) layer
  *
- * @property id unique identifier of the user
+ * @property userId unique identifier of the user
  * @property name name of the user
  * @property age age of the user
  * @property status status of the user
  */
 data class UserEntity(
-    val id: Long,
+    val userId: Long,
     val name: String,
     val age: Int,
     val status: StatusEntity,
