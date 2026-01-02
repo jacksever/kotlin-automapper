@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Alexander Gorodnikov
+ * Copyright (c) 2026 Alexander Gorodnikov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,42 +20,44 @@ import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSType
 
 /**
- * Helper object for generating constructor parameters and handling type conversions.
+ * Helper object for generating constructor parameters and handling type conversions
  *
  * This object provides utility methods to match properties between source and target classes
- * and generate the appropriate assignment code, including type conversions if necessary.
+ * and generate the appropriate assignment code, including type conversions if necessary
  */
 internal object ParameterHelper {
 
     /**
      * Builds a list of constructor parameter assignments for the target class
-     * based on properties from the source class, applying custom mappings.
+     * based on properties from the source class, applying custom mappings
      *
-     * @param sourceClass Source class declaration.
-     * @param targetClass Target class declaration.
-     * @param customMappings A map of custom mappings from a target property name to a source property name.
-     * @return List of strings representing constructor arguments (e.g., "id = sourceId").
+     * @param sourceClass source class declaration
+     * @param targetClass target class declaration
+     * @param customMappings map of custom mappings from a target property name to a source property name
+     * @return List of strings representing constructor arguments (e.g., "id = sourceId")
      */
     fun buildConstructorParameters(
         sourceClass: KSClassDeclaration,
         targetClass: KSClassDeclaration,
         customMappings: Map<String, String> = emptyMap(),
     ): List<String> = buildList {
-        val sourceProperties = sourceClass.getAllProperties().associateBy { it.simpleName.asString() }
+        val sourceProperties = sourceClass.getAllProperties()
+            .associateBy { property -> property.simpleName.asString() }
         val targetConstructorParams = targetClass.primaryConstructor?.parameters ?: emptyList()
 
         targetConstructorParams.forEach { targetParam ->
-            val targetParamName = targetParam.name!!.asString()
+            val targetParamName = targetParam.name?.asString().orEmpty()
 
-            // Find the source property name: use the custom mapping, or fall back to the same name.
+            // Find the source property name: use the custom mapping, or fall back to the same name
             val sourcePropName = customMappings[targetParamName] ?: targetParamName
 
             sourceProperties[sourcePropName]?.let { sourceProperty ->
                 val targetType = targetParam.type.resolve()
                 val sourceType = sourceProperty.type.resolve()
-                val conversion = getConversionExpression(sourceType = sourceType, targetType = targetType)
+                val conversion =
+                    getConversionExpression(sourceType = sourceType, targetType = targetType)
 
-                // Assign from the source property, applying any necessary conversion.
+                // Assign from the source property, applying any necessary conversion
                 add("$targetParamName = ${sourceProperty.simpleName.asString()}$conversion")
             }
         }
@@ -102,6 +104,13 @@ internal object ParameterHelper {
 
     /**
      * Attempts to generate a conversion expression for collection types (List, Set)
+     *
+     * Checks if both types are supported collections and recursively generates conversions
+     * for their type arguments. Handles `List <-> Set` transformations
+     *
+     * @param sourceType type of the source property
+     * @param targetType type of the target property
+     * @return conversion string (e.g. ".map { it.asTarget() }") or empty string if not a supported collection conversion
      */
     private fun getCollectionConversion(sourceType: KSType, targetType: KSType): String {
         val sourceDeclaration = sourceType.declaration as? KSClassDeclaration ?: return ""
@@ -137,6 +146,13 @@ internal object ParameterHelper {
 
     /**
      * Attempts to generate a recursive mapping call for object types
+     *
+     * Used when mapping nested objects (e.g. `User.address` -> `UserEntity.address`).
+     * It assumes an extension function `asTarget()` exists for the source type if they are custom classes
+     *
+     * @param sourceType type of the source property
+     * @param targetType type of the target property
+     * @return conversion string (e.g. ".asTarget()") or empty string
      */
     private fun getObjectConversion(sourceType: KSType, targetType: KSType): String {
         val sourceDeclaration = sourceType.declaration

@@ -21,7 +21,6 @@ import com.google.devtools.ksp.symbol.ClassKind
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.Modifier
 import io.github.jacksever.automapper.annotation.PropertyMapping
-import kotlin.math.log
 
 /**
  * Factory for creating [MapperBuilder] instances based on the source and target types
