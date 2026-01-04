@@ -56,8 +56,15 @@ internal object MapperBuilderFactory {
         val isTargetSealed = target.modifiers.contains(Modifier.SEALED)
 
         return when {
-            isSourceEnum && isTargetEnum -> EnumMapperBuilder(logger = logger)
-            isSourceSealed && isTargetSealed -> SealedMapperBuilder(logger = logger)
+            isSourceEnum && isTargetEnum -> EnumMapperBuilder(
+                logger = logger,
+                propertyMappings = propertyMappings,
+            )
+
+            isSourceSealed && isTargetSealed -> SealedMapperBuilder(
+                logger = logger,
+            )
+
             else -> DataMapperBuilder(propertyMappings = propertyMappings)
         }
     }
