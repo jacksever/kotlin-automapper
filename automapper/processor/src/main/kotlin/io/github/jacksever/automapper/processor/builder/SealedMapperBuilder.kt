@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Alexander Gorodnikov
+ * Copyright (c) 2026 Alexander Gorodnikov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,19 +23,23 @@ import com.google.devtools.ksp.symbol.Modifier
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.buildCodeBlock
 import com.squareup.kotlinpoet.ksp.toClassName
+import io.github.jacksever.automapper.annotation.PropertyMapping
 import io.github.jacksever.automapper.processor.helper.ParameterHelper.buildConstructorParameters
 
 /**
  * Strategy for generating mapping code for Sealed classes and interfaces
  *
  * This builder ensures that both the source and target sealed hierarchies have a matching structure.
- * It recursively finds all "leaf" subclasses (objects or concrete classes) and verifies that
- * each source leaf has a corresponding target leaf with the same simple name
+ * It recursively finds all "leaf" subclasses and verifies that each source leaf has a
+ * corresponding target leaf, using custom [PropertyMapping] rules if provided
  *
  * If the hierarchies do not match, the build is failed with a clear error, preventing the generation
  * of a non-exhaustive `when` expression and ensuring compile-time safety
  */
-internal class SealedMapperBuilder(private val logger: KSPLogger) : MapperBuilder {
+internal class SealedMapperBuilder(
+    private val logger: KSPLogger,
+    private val propertyMappings: List<PropertyMapping>,
+) : MapperBuilder {
 
     /**
      * Validates the sealed hierarchies and generates an exhaustive `when` expression if they match
@@ -44,7 +48,7 @@ internal class SealedMapperBuilder(private val logger: KSPLogger) : MapperBuilde
      * ```
      * return when(this) {
      *     Source.Sub1 -> Target.Sub1
-     *     is Source.Sub2 -> Target.Sub2(
+     *     is Source.Sub2 -> Target.LegacySub2(
      *         prop = prop
      *     )
      * }
@@ -54,33 +58,47 @@ internal class SealedMapperBuilder(private val logger: KSPLogger) : MapperBuilde
         buildCodeBlock {
             val targetLeaves = collectLeafSubclasses(declaration = to)
             val sourceLeaves = collectLeafSubclasses(declaration = from)
+            val customClassMappings = propertyMappings
+                .associate { property -> property.from to property.to }
 
             val targetLeafNames = targetLeaves.map { entry -> entry.simpleName.asString() }.toSet()
-            val sourceLeafNames = sourceLeaves.map { entry -> entry.simpleName.asString() }.toSet()
+            val missingInTarget = sourceLeaves.mapNotNull { sourceLeaf ->
+                val sourceName = sourceLeaf.simpleName.asString()
+                val targetName = customClassMappings[sourceName] ?: sourceName
 
-            val missingInTarget = sourceLeafNames - targetLeafNames
+                if (targetName !in targetLeafNames) sourceName else null
+            }
             if (missingInTarget.isNotEmpty()) {
                 logger.error(
                     message = buildString {
                         append("Cannot generate sealed mapper from ${from.simpleName.asString()} to ${to.simpleName.asString()}. ")
                         append("Target hierarchy is missing implementations for: ${missingInTarget.joinToString()}. ")
-                        append("Please ensure all leaf subclasses have a matching counterpart by name")
+                        append("Please ensure all leaf subclasses have a matching counterpart by name, or provide a @PropertyMapping for them")
                     },
                     symbol = to
                 )
                 error(message = "Sealed mapping failed due to mismatched hierarchies")
             }
 
+            // This map is for properties inside the leaf classes. The direction is to -> from for lookup
+            val customPropertyMappings = propertyMappings
+                .associate { property -> property.to to property.from }
+
             beginControlFlow(controlFlow = "return when (this)")
             sourceLeaves.forEach { source ->
-                val targetSub =
-                    targetLeaves.first { target -> target.simpleName == source.simpleName }
+                val sourceName = source.simpleName.asString()
+                val targetName = customClassMappings[sourceName] ?: sourceName
+                val targetSub = targetLeaves
+                    .first { target -> target.simpleName.asString() == targetName }
 
                 if (source.classKind == ClassKind.OBJECT) {
                     addStatement("%T -> %T", source.toClassName(), targetSub.toClassName())
                 } else {
-                    val params =
-                        buildConstructorParameters(sourceClass = source, targetClass = targetSub)
+                    val params = buildConstructorParameters(
+                        sourceClass = source,
+                        targetClass = targetSub,
+                        customMappings = customPropertyMappings,
+                    )
 
                     add("is %T -> %T(\n", source.toClassName(), targetSub.toClassName())
                     indent()

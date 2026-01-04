@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Alexander Gorodnikov
+ * Copyright (c) 2026 Alexander Gorodnikov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,8 +47,8 @@ sealed interface UiShape {
         data class Circle(val radius: Double) : Rounded
 
         /**
-         * An ellipse with a given [majorAxis] and [minorAxis]
+         * An ellipse with a given [uiMajorAxis] and [uiMinorAxis]
          */
-        data class Ellipse(val majorAxis: Double, val minorAxis: Double) : Rounded
+        data class Oval(val uiMajorAxis: Double, val uiMinorAxis: Double) : Rounded
     }
 }
