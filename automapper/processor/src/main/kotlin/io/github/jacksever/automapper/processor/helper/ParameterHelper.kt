@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Alexander Gorodnikov
+ * Copyright (c) 2026 Alexander Gorodnikov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,39 +29,34 @@ internal object ParameterHelper {
 
     /**
      * Builds a list of constructor parameter assignments for the target class
-     * based on properties from the source class
-     *
-     * This method iterates through properties of the [sourceClass], finds matching properties
-     * in the [targetClass] by name, and generates assignment strings. It automatically handles:
-     * - Primitive type conversions (e.g., String to Int)
-     * - Collection mapping (List/Set transformation)
-     * - Recursive mapping for complex types (generating `.asTarget()` calls)
-     * - Nullability handling (adding `!!` or `?` as needed)
+     * based on properties from the source class, applying custom mappings
      *
      * @param sourceClass source class declaration
      * @param targetClass target class declaration
-     * @return List of strings representing constructor arguments (e.g., "id = id.toLong()")
+     * @param customMappings map of custom mappings from a target property name to a source property name
+     * @return List of strings representing constructor arguments (e.g., "id = sourceId")
      */
     fun buildConstructorParameters(
         sourceClass: KSClassDeclaration,
         targetClass: KSClassDeclaration,
+        customMappings: Map<String, String> = emptyMap(),
     ): List<String> = buildList {
-        val sourceProperties = sourceClass.getAllProperties().toList()
+        val sourceProperties = sourceClass.getAllProperties()
+            .associateBy { property -> property.simpleName.asString() }
         val targetProperties = targetClass.getAllProperties().toList()
 
-        sourceProperties.forEach { sourceProperty ->
-            targetProperties
-                .firstOrNull { targetProperty ->
-                    targetProperty.simpleName.asString() == sourceProperty.simpleName.asString()
-                }
-                ?.let { target ->
-                    val targetType = target.type.resolve()
-                    val sourceType = sourceProperty.type.resolve()
-                    val conversion =
-                        getConversionExpression(sourceType = sourceType, targetType = targetType)
+        targetProperties.forEach { targetProperty ->
+            val targetParamName = targetProperty.simpleName.asString()
+            val sourcePropName = customMappings[targetParamName] ?: targetParamName
 
-                    add("${target.simpleName.asString()} = ${sourceProperty.simpleName.asString()}$conversion")
-                }
+            sourceProperties[sourcePropName]?.let { sourceProperty ->
+                val targetType = targetProperty.type.resolve()
+                val sourceType = sourceProperty.type.resolve()
+                val conversion =
+                    getConversionExpression(sourceType = sourceType, targetType = targetType)
+
+                add("$targetParamName = ${sourceProperty.simpleName.asString()}$conversion")
+            }
         }
     }
 

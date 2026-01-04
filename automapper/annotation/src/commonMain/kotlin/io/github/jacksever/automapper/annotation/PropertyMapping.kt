@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Alexander Gorodnikov
+ * Copyright (c) 2026 Alexander Gorodnikov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,21 +14,17 @@
  * limitations under the License.
  */
 
-package io.github.jacksever.automapper.sample.entity.user
-
-import io.github.jacksever.automapper.sample.entity.status.StatusEntity
+package io.github.jacksever.automapper.annotation
 
 /**
- * Represents a User in the data (e.g., database) layer
+ * Defines a single mapping rule for a property with a different name
  *
- * @property userId unique identifier of the user
- * @property name name of the user
- * @property age age of the user
- * @property status status of the user
+ * @property from name of the property in the source class
+ * @property to name of the property in the target class
  */
-data class UserEntity(
-    val userId: Long,
-    val name: String,
-    val age: Int,
-    val status: StatusEntity,
+@Target
+@Retention(AnnotationRetention.SOURCE)
+annotation class PropertyMapping(
+    val from: String,
+    val to: String,
 )

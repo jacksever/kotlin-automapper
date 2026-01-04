@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Alexander Gorodnikov
+ * Copyright (c) 2026 Alexander Gorodnikov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,11 @@ package io.github.jacksever.automapper.annotation
  *
  * @property reversible if `true` (default), the processor will also generate a reverse mapping function
  * (Target -> Source) in addition to the direct mapping (Source -> Target). If `false`, only the direct mapping is generated
+ * @property propertyMappings array of [PropertyMapping] rules to handle properties with different names
  */
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.SOURCE)
-annotation class AutoMapper(val reversible: Boolean = true)
+annotation class AutoMapper(
+    val reversible: Boolean = true,
+    val propertyMappings: Array<PropertyMapping> = [],
+)

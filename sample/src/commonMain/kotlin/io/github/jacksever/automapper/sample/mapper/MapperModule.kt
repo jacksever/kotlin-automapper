@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Alexander Gorodnikov
+ * Copyright (c) 2026 Alexander Gorodnikov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package io.github.jacksever.automapper.sample.mapper
 
 import io.github.jacksever.automapper.annotation.AutoMapper
 import io.github.jacksever.automapper.annotation.AutoMapperModule
+import io.github.jacksever.automapper.annotation.PropertyMapping
 import io.github.jacksever.automapper.sample.domain.shape.Shape
 import io.github.jacksever.automapper.sample.domain.status.Status
 import io.github.jacksever.automapper.sample.domain.user.User
@@ -39,7 +40,11 @@ internal interface MapperModule {
     /**
      * The processor will generate `User.asUserEntity()` and `UserEntity.asUser()` extensions
      */
-    @AutoMapper
+    @AutoMapper(
+        propertyMappings = [
+            PropertyMapping(from = "id", to = "userId")
+        ]
+    )
     fun userMapper(user: User): UserEntity
 
     /**

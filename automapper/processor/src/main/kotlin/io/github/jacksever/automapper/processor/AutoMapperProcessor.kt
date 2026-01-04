@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Alexander Gorodnikov
+ * Copyright (c) 2026 Alexander Gorodnikov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,6 +34,7 @@ import com.squareup.kotlinpoet.ksp.toClassName
 import com.squareup.kotlinpoet.ksp.writeTo
 import io.github.jacksever.automapper.annotation.AutoMapper
 import io.github.jacksever.automapper.annotation.AutoMapperModule
+import io.github.jacksever.automapper.annotation.PropertyMapping
 import io.github.jacksever.automapper.processor.builder.MapperBuilderFactory
 import io.github.jacksever.automapper.processor.model.MapperDefinition
 
@@ -91,15 +92,12 @@ internal class AutoMapperProcessor(
         logger.info("AutoMapperProcessor: Round processing finished successfully")
 
         invalidSymbols
-    }.fold(
-        onSuccess = { symbols -> symbols },
-        onFailure = { throwable ->
-            logger.error("AutoMapperProcessor: Critical error during processing: ${throwable.message}")
-            throwable.printStackTrace()
+    }.getOrElse { throwable ->
+        logger.error("AutoMapperProcessor: Critical error during processing: ${throwable.message}")
+        throwable.printStackTrace()
 
-            emptyList()
-        }
-    )
+        emptyList()
+    }
 
     /**
      * Parses a single `@AutoMapper` annotated function into a [MapperDefinition]
@@ -117,6 +115,19 @@ internal class AutoMapperProcessor(
         val reversible = mapperAnnotation.arguments
             .firstOrNull { args -> args.name?.asString() == "reversible" }
             ?.value as? Boolean ?: true
+        val mappings = mapperAnnotation.arguments
+            .firstOrNull { args -> args.name?.asString() == "propertyMappings" }
+            ?.value as? List<*>
+        val propertyMappings = mappings
+            ?.filterIsInstance<KSAnnotation>()
+            ?.map { annotation ->
+                val from = annotation.arguments
+                    .first { arg -> arg.name?.asString() == "from" }.value as String
+                val to = annotation.arguments
+                    .first { arg -> arg.name?.asString() == "to" }.value as String
+
+                PropertyMapping(from = from, to = to)
+            } ?: emptyList()
 
         check(parameters.size == 1) {
             "Function '$functionName' annotated with @AutoMapper must have exactly one parameter representing the source object"
@@ -138,6 +149,7 @@ internal class AutoMapperProcessor(
             source = sourceClass,
             target = targetClass,
             reversible = reversible,
+            propertyMappings = propertyMappings,
         )
     }.onFailure { throwable ->
         logger.error(
@@ -242,12 +254,15 @@ internal class AutoMapperProcessor(
                             logger = logger,
                             source = definition.source,
                             target = definition.target,
+                            propertyMappings = definition.propertyMappings,
                         ).buildConversion(from = definition.source, to = definition.target)
                     )
 
             fileSpecBuilder.addFunction(funSpec = sourceToTargetFunBuilder.build())
 
             if (definition.reversible) {
+                val reversedMappings = definition.propertyMappings
+                    .map { property -> PropertyMapping(from = property.to, to = property.from) }
                 val targetToSourceFunBuilder =
                     FunSpec.builder(name = "as${sourceClassName.simpleName}")
                         .addModifiers(visibilityModifier)
@@ -259,6 +274,7 @@ internal class AutoMapperProcessor(
                                 logger = logger,
                                 source = definition.target,
                                 target = definition.source,
+                                propertyMappings = reversedMappings,
                             ).buildConversion(from = definition.target, to = definition.source)
                         )
 
