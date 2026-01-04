@@ -74,6 +74,11 @@ internal interface MapperModule {
     /**
      * Since `reversible` is false, only the `Status.asUiStatus()` extension will be generated
      */
-    @AutoMapper(reversible = false)
+    @AutoMapper(
+        reversible = false,
+        propertyMappings = [
+            PropertyMapping(from = "PENDING", to = "PENDING_APPROVAL")
+        ]
+    )
     fun uiStatusMapper(status: Status): UiStatus
 }

@@ -27,9 +27,9 @@ enum class UiStatus {
     ACTIVE,
 
     /**
-     * Represents a pending user status
+     * Represents a user status that is pending approval
      */
-    PENDING,
+    PENDING_APPROVAL,
 
     /**
      * Represents an inactive user status

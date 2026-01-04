@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Alexander Gorodnikov
+ * Copyright (c) 2026 Alexander Gorodnikov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.buildCodeBlock
 import com.squareup.kotlinpoet.ksp.toClassName
+import io.github.jacksever.automapper.annotation.PropertyMapping
 
 /**
  * Strategy for generating mapping code for Enum classes
@@ -31,7 +32,10 @@ import com.squareup.kotlinpoet.ksp.toClassName
  * [IllegalArgumentException] is thrown for that specific constant, ensuring that the
  * mapping is safe at compile time and provides clear feedback at runtime for unmapped values
  */
-internal class EnumMapperBuilder(private val logger: KSPLogger) : MapperBuilder {
+internal class EnumMapperBuilder(
+    private val logger: KSPLogger,
+    private val propertyMappings: List<PropertyMapping>,
+) : MapperBuilder {
 
     /**
      * Generates an exhaustive `when` expression for the mapping
@@ -58,25 +62,30 @@ internal class EnumMapperBuilder(private val logger: KSPLogger) : MapperBuilder 
                 .map { entry -> entry.simpleName.asString() }
                 .toSet()
 
+            val customMappings = propertyMappings
+                .associate { property -> property.from to property.to }
+
             beginControlFlow(controlFlow = "return when (this)")
-            fromEntries.forEach { entryName ->
-                if (entryName in toEntries) {
+            fromEntries.forEach { sourceEntryName ->
+                val targetEntryName = customMappings[sourceEntryName] ?: sourceEntryName
+
+                if (targetEntryName in toEntries) {
                     addStatement(
                         "%T.%L -> %T.%L",
                         from.toClassName(),
-                        entryName,
+                        sourceEntryName,
                         to.toClassName(),
-                        entryName
+                        targetEntryName
                     )
                 } else {
                     val errorMessage =
-                        "Enum constant ${from.simpleName.asString()}.$entryName has no matching constant in ${to.simpleName.asString()}"
+                        "Enum constant ${from.simpleName.asString()}.$sourceEntryName has no matching constant in ${to.simpleName.asString()}"
                     logger.warn(message = errorMessage, symbol = from)
 
                     addStatement(
                         "%T.%L -> throw %T(%S)",
                         from.toClassName(),
-                        entryName,
+                        sourceEntryName,
                         IllegalArgumentException::class,
                         errorMessage
                     )
