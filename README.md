@@ -210,6 +210,94 @@ interface MapperModule {
 }
 ```
 
+### Mapping Properties with Different Names
+
+A common scenario is that property names do not match between layers. AutoMapper handles this gracefully using the `propertyMappings` parameter.
+
+#### For Data Classes
+
+*Models:*
+```kotlin
+// Domain
+data class User(val id: Long, ...)
+
+// Data Layer
+data class UserEntity(val userId: Long, ...)
+```
+
+*Mapping Definition:*
+```kotlin
+import io.github.jacksever.automapper.annotation.PropertyMapping
+
+@AutoMapper(
+    propertyMappings = [
+        PropertyMapping(from = "id", to = "userId")
+    ]
+)
+fun userMapping(user: User): UserEntity
+```
+
+#### For Enum Constants
+
+The same principle applies to `enum` constants with different names.
+
+*Models:*
+```kotlin
+// Domain
+enum class Status { PENDING, ... }
+
+// UI
+enum class UiStatus { PENDING_APPROVAL, ... }
+```
+
+*Mapping Definition:*
+```kotlin
+import io.github.jacksever.automapper.annotation.PropertyMapping
+
+@AutoMapper(
+    propertyMappings = [
+        PropertyMapping(from = "PENDING", to = "PENDING_APPROVAL")
+    ]
+)
+fun statusMapping(status: Status): UiStatus
+```
+
+#### For Sealed Classes
+
+The `@PropertyMapping` annotation is powerful enough to handle both subclass names and the properties within them.
+
+*Models:*
+```kotlin
+// Domain
+sealed interface Shape {
+    
+    data class Ellipse(val majorAxis: Double, ...) : Shape
+}
+
+// UI
+sealed interface UiShape {
+    
+    data class Oval(val uiMajorAxis: Double, ...) : UiShape
+}
+```
+
+*Mapping Definition:*
+```kotlin
+import io.github.jacksever.automapper.annotation.PropertyMapping
+
+@AutoMapper(
+    propertyMappings = [
+        // Rule for the subclass name
+        PropertyMapping(from = "Ellipse", to = "Oval"),
+        // Rule for a property inside that subclass
+        PropertyMapping(from = "majorAxis", to = "uiMajorAxis")
+    ]
+)
+fun shapeMapping(shape: Shape): UiShape
+```
+
+The processor will understand these rules and generate the correct mapping logic for all cases.
+
 ## Compatibility
 
 -   **Kotlin:** `2.2.21`
