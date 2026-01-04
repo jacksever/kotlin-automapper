@@ -116,33 +116,32 @@ internal class AutoMapperProcessor(
             .firstOrNull { args -> args.name?.asString() == "reversible" }
             ?.value as? Boolean ?: true
         val mappings = mapperAnnotation.arguments
-            .firstOrNull { args -> args.name?.asString() == "mappings" }
+            .firstOrNull { args -> args.name?.asString() == "propertyMappings" }
             ?.value as? List<*>
-
         val propertyMappings = mappings
-            ?.mapNotNull { mapping -> mapping as? KSAnnotation }
+            ?.filterIsInstance<KSAnnotation>()
             ?.map { annotation ->
-                val from =
-                    annotation.arguments.first { args -> args.name?.asString() == "from" }.value as String
-                val to =
-                    annotation.arguments.first { args -> args.name?.asString() == "to" }.value as String
+                val from = annotation.arguments
+                    .first { arg -> arg.name?.asString() == "from" }.value as String
+                val to = annotation.arguments
+                    .first { arg -> arg.name?.asString() == "to" }.value as String
 
                 PropertyMapping(from = from, to = to)
             } ?: emptyList()
 
-        check(value = parameters.size == 1) {
+        check(parameters.size == 1) {
             "Function '$functionName' annotated with @AutoMapper must have exactly one parameter representing the source object"
         }
 
         val sourceParam = parameters.first()
         val sourceType = sourceParam.type.resolve()
-        val targetType = requireNotNull(value = function.returnType?.resolve()) {
+        val targetType = requireNotNull(function.returnType?.resolve()) {
             "Function '$functionName' annotated with @AutoMapper must declare a return type representing the target object"
         }
-        val sourceClass = requireNotNull(value = sourceType.declaration as? KSClassDeclaration) {
+        val sourceClass = requireNotNull(sourceType.declaration as? KSClassDeclaration) {
             "Source type '${sourceType}' in function '$functionName' must be a class"
         }
-        val targetClass = requireNotNull(value = targetType.declaration as? KSClassDeclaration) {
+        val targetClass = requireNotNull(targetType.declaration as? KSClassDeclaration) {
             "Target type '${targetType}' in function '$functionName' must be a class"
         }
 
@@ -262,9 +261,8 @@ internal class AutoMapperProcessor(
             fileSpecBuilder.addFunction(funSpec = sourceToTargetFunBuilder.build())
 
             if (definition.reversible) {
-                val reversedMappings = definition.propertyMappings.map { mapping ->
-                    PropertyMapping(from = mapping.to, to = mapping.from)
-                }
+                val reversedMappings = definition.propertyMappings
+                    .map { property -> PropertyMapping(from = property.to, to = property.from) }
                 val targetToSourceFunBuilder =
                     FunSpec.builder(name = "as${sourceClassName.simpleName}")
                         .addModifiers(visibilityModifier)

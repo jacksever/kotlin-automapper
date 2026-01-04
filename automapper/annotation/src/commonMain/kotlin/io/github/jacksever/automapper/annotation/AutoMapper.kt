@@ -23,11 +23,11 @@ package io.github.jacksever.automapper.annotation
  *
  * @property reversible if `true` (default), the processor will also generate a reverse mapping function
  * (Target -> Source) in addition to the direct mapping (Source -> Target). If `false`, only the direct mapping is generated
- * @property mappings array of [PropertyMapping] rules to handle properties with different names
+ * @property propertyMappings array of [PropertyMapping] rules to handle properties with different names
  */
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.SOURCE)
 annotation class AutoMapper(
     val reversible: Boolean = true,
-    val mappings: Array<PropertyMapping> = [],
+    val propertyMappings: Array<PropertyMapping> = [],
 )

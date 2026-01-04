@@ -22,7 +22,7 @@ package io.github.jacksever.automapper.annotation
  * @property from name of the property in the source class
  * @property to name of the property in the target class
  */
-@Target()
+@Target
 @Retention(AnnotationRetention.SOURCE)
 annotation class PropertyMapping(
     val from: String,

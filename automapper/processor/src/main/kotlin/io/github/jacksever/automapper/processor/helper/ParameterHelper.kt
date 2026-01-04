@@ -43,21 +43,18 @@ internal object ParameterHelper {
     ): List<String> = buildList {
         val sourceProperties = sourceClass.getAllProperties()
             .associateBy { property -> property.simpleName.asString() }
-        val targetConstructorParams = targetClass.primaryConstructor?.parameters ?: emptyList()
+        val targetProperties = targetClass.getAllProperties().toList()
 
-        targetConstructorParams.forEach { targetParam ->
-            val targetParamName = targetParam.name?.asString().orEmpty()
-
-            // Find the source property name: use the custom mapping, or fall back to the same name
+        targetProperties.forEach { targetProperty ->
+            val targetParamName = targetProperty.simpleName.asString()
             val sourcePropName = customMappings[targetParamName] ?: targetParamName
 
             sourceProperties[sourcePropName]?.let { sourceProperty ->
-                val targetType = targetParam.type.resolve()
+                val targetType = targetProperty.type.resolve()
                 val sourceType = sourceProperty.type.resolve()
                 val conversion =
                     getConversionExpression(sourceType = sourceType, targetType = targetType)
 
-                // Assign from the source property, applying any necessary conversion
                 add("$targetParamName = ${sourceProperty.simpleName.asString()}$conversion")
             }
         }
