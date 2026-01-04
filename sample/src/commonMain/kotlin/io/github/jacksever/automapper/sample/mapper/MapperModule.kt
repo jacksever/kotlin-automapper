@@ -62,7 +62,14 @@ internal interface MapperModule {
     /**
      * Since `reversible` is false, only the `Shape.asUiShape()` extension will be generated
      */
-    @AutoMapper(reversible = false)
+    @AutoMapper(
+        reversible = false,
+        propertyMappings = [
+            PropertyMapping(from = "Ellipse", to = "Oval"),
+            PropertyMapping(from = "majorAxis", to = "uiMajorAxis"),
+            PropertyMapping(from = "minorAxis", to = "uiMinorAxis"),
+        ]
+    )
     fun uiShapeMapper(shape: Shape): UiShape
 
     /**

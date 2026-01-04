@@ -63,6 +63,7 @@ internal object MapperBuilderFactory {
 
             isSourceSealed && isTargetSealed -> SealedMapperBuilder(
                 logger = logger,
+                propertyMappings = propertyMappings,
             )
 
             else -> DataMapperBuilder(propertyMappings = propertyMappings)
