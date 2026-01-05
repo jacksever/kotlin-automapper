@@ -39,18 +39,33 @@ internal interface MapperModule {
 
     /**
      * The processor will generate `User.asUserEntity()` and `UserEntity.asUser()` extensions
+     *
+     * This demonstrates a complex mapping with multiple rules:
+     * - Renaming a property (`id` to `userId`).
+     * - Handling nullability with a default value (`address`).
+     * - Renaming and handling nullability simultaneously (`middleName` to `patronymic`).
      */
     @AutoMapper(
         propertyMappings = [
-            PropertyMapping(from = "id", to = "userId")
+            PropertyMapping(from = "id", to = "userId"),
+            PropertyMapping(from = "address", defaultValue = "\"Unknown\""),
+            PropertyMapping(from = "middleName", to = "patronymic", defaultValue = "\"N/A\"")
         ]
     )
     fun userMapper(user: User): UserEntity
 
     /**
-     * Since `reversible` is false, only the `User.asUiUser()` extension will be generated
+     * Demonstrates providing a default value for a nullable property
+     *
+     * Since `reversible` is false, only the `User.asUiUser()` extension will be generated.
+     * The processor will use the `defaultValue` for `UiUser.address` if `User.address` is null
      */
-    @AutoMapper(reversible = false)
+    @AutoMapper(
+        reversible = false,
+        propertyMappings = [
+            PropertyMapping(from = "address", defaultValue = "\"Unknown\""),
+        ]
+    )
     fun uiUserMapper(user: User): UiUser
 
     /**

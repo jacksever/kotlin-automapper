@@ -210,19 +210,23 @@ interface MapperModule {
 }
 ```
 
-### Mapping Properties with Different Names
+### Mapping Properties with Different Names and Nullability
 
-A common scenario is that property names do not match between layers. AutoMapper handles this gracefully using the `propertyMappings` parameter.
+A common scenario is that property names or nullability do not match between layers. AutoMapper handles this gracefully using the `propertyMappings` parameter.
+
+You can provide an array of `@PropertyMapping` annotations to define custom rules:
+-   Use `from` and `to` to map properties with different names.
+-   Use `defaultValue` to provide a fallback for a `nullable` source property when the target property is not nullable. If the source name is the same as the target, you can omit the `to` parameter.
 
 #### For Data Classes
 
 *Models:*
 ```kotlin
-// Domain
-data class User(val id: Long, ...)
+// Domain: nullable address
+data class User(val id: Long, val address: String?)
 
-// Data Layer
-data class UserEntity(val userId: Long, ...)
+// Data Layer: different id name, non-nullable address
+data class UserEntity(val userId: Long, val address: String)
 ```
 
 *Mapping Definition:*
@@ -231,11 +235,16 @@ import io.github.jacksever.automapper.annotation.PropertyMapping
 
 @AutoMapper(
     propertyMappings = [
-        PropertyMapping(from = "id", to = "userId")
+        // Renames 'id' to 'userId'
+        PropertyMapping(from = "id", to = "userId"),
+        // Provides a default value for 'address' if it's null
+        PropertyMapping(from = "address", defaultValue = "\"Unknown\"")
     ]
 )
-fun userMapping(user: User): UserEntity
+fun userMapper(user: User): UserEntity
 ```
+
+The generated code will safely use the Elvis operator: `address = address ?: "Unknown"`.
 
 #### For Enum Constants
 
@@ -259,7 +268,7 @@ import io.github.jacksever.automapper.annotation.PropertyMapping
         PropertyMapping(from = "PENDING", to = "PENDING_APPROVAL")
     ]
 )
-fun statusMapping(status: Status): UiStatus
+fun statusMapper(status: Status): UiStatus
 ```
 
 #### For Sealed Classes
@@ -293,10 +302,8 @@ import io.github.jacksever.automapper.annotation.PropertyMapping
         PropertyMapping(from = "majorAxis", to = "uiMajorAxis")
     ]
 )
-fun shapeMapping(shape: Shape): UiShape
+fun shapeMapper(shape: Shape): UiShape
 ```
-
-The processor will understand these rules and generate the correct mapping logic for all cases.
 
 ## Compatibility
 

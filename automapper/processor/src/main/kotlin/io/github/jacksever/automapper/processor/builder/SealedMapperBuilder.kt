@@ -58,7 +58,11 @@ internal class SealedMapperBuilder(
         buildCodeBlock {
             val targetLeaves = collectLeafSubclasses(declaration = to)
             val sourceLeaves = collectLeafSubclasses(declaration = from)
-            val customClassMappings = propertyMappings
+
+            val sourceLeafNames = sourceLeaves.map { leaf -> leaf.simpleName.asString() }.toSet()
+            val (classMappings, fieldMappings) = propertyMappings
+                .partition { property -> property.from in sourceLeafNames }
+            val customClassMappings = classMappings
                 .associate { property -> property.from to property.to }
 
             val targetLeafNames = targetLeaves.map { entry -> entry.simpleName.asString() }.toSet()
@@ -80,10 +84,6 @@ internal class SealedMapperBuilder(
                 error(message = "Sealed mapping failed due to mismatched hierarchies")
             }
 
-            // This map is for properties inside the leaf classes. The direction is to -> from for lookup
-            val customPropertyMappings = propertyMappings
-                .associate { property -> property.to to property.from }
-
             beginControlFlow(controlFlow = "return when (this)")
             sourceLeaves.forEach { source ->
                 val sourceName = source.simpleName.asString()
@@ -97,7 +97,7 @@ internal class SealedMapperBuilder(
                     val params = buildConstructorParameters(
                         sourceClass = source,
                         targetClass = targetSub,
-                        customMappings = customPropertyMappings,
+                        propertyMappings = fieldMappings,
                     )
 
                     add("is %T -> %T(\n", source.toClassName(), targetSub.toClassName())

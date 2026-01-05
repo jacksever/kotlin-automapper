@@ -29,7 +29,9 @@ import io.github.jacksever.automapper.processor.helper.ParameterHelper.buildCons
  * This builder generates a constructor call for the target class, passing arguments derived from
  * the source class properties. It now supports custom mappings for properties with different names
  */
-internal class DataMapperBuilder(private val propertyMappings: List<PropertyMapping>) : MapperBuilder {
+internal class DataMapperBuilder(
+    private val propertyMappings: List<PropertyMapping>,
+) : MapperBuilder {
 
     /**
      * Generates a constructor call for the target class, applying custom property mappings
@@ -44,11 +46,10 @@ internal class DataMapperBuilder(private val propertyMappings: List<PropertyMapp
      */
     override fun buildConversion(from: KSClassDeclaration, to: KSClassDeclaration): CodeBlock =
         buildCodeBlock {
-            val customMappings = propertyMappings.associate { mapping -> mapping.to to mapping.from }
             val params = buildConstructorParameters(
                 sourceClass = from,
                 targetClass = to,
-                customMappings = customMappings,
+                propertyMappings = propertyMappings,
             )
 
             add("return %T(\n", to.toClassName())

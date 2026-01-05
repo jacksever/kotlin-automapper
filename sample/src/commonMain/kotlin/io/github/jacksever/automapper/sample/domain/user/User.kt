@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Alexander Gorodnikov
+ * Copyright (c) 2026 Alexander Gorodnikov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,10 +25,14 @@ import io.github.jacksever.automapper.sample.domain.status.Status
  * @property name name of the user
  * @property age age of the user
  * @property status status of the user
+ * @property address address of the user
+ * @property middleName optional middle name of the user
  */
 data class User(
     val id: Long,
     val name: String,
     val age: Int,
     val status: Status,
+    val address: String? = null,
+    val middleName: String? = null,
 )

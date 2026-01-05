@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Alexander Gorodnikov
+ * Copyright (c) 2026 Alexander Gorodnikov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,8 +21,10 @@ package io.github.jacksever.automapper.sample.ui.user
  *
  * @property name name of the user
  * @property age age of the user
+ * @property address address of the user
  */
 data class UiUser(
     val name: String,
     val age: Int,
+    val address: String,
 )

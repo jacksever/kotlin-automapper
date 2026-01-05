@@ -17,14 +17,17 @@
 package io.github.jacksever.automapper.annotation
 
 /**
- * Defines a single mapping rule for a property with a different name
+ * Defines a single mapping rule for a property with a different name or nullability handling
  *
  * @property from name of the property in the source class
- * @property to name of the property in the target class
+ * @property to name of the property in the target class. If omitted, it is assumed to be the same as [from]
+ * @property defaultValue string literal to be used as a default value if the source property is null and the target is not nullable.
+ * For example, `defaultValue = "\"\""` for an empty string, or `defaultValue = "0L"` for a Long
  */
 @Target
 @Retention(AnnotationRetention.SOURCE)
 annotation class PropertyMapping(
     val from: String,
-    val to: String,
+    val to: String = "",
+    val defaultValue: String = "",
 )

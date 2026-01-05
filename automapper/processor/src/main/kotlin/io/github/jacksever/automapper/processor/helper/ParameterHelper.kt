@@ -18,6 +18,7 @@ package io.github.jacksever.automapper.processor.helper
 
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSType
+import io.github.jacksever.automapper.annotation.PropertyMapping
 
 /**
  * Helper object for generating constructor parameters and handling type conversions
@@ -33,13 +34,13 @@ internal object ParameterHelper {
      *
      * @param sourceClass source class declaration
      * @param targetClass target class declaration
-     * @param customMappings map of custom mappings from a target property name to a source property name
+     * @param propertyMappings list of custom property mappings
      * @return List of strings representing constructor arguments (e.g., "id = sourceId")
      */
     fun buildConstructorParameters(
         sourceClass: KSClassDeclaration,
         targetClass: KSClassDeclaration,
-        customMappings: Map<String, String> = emptyMap(),
+        propertyMappings: List<PropertyMapping> = emptyList(),
     ): List<String> = buildList {
         val sourceProperties = sourceClass.getAllProperties()
             .associateBy { property -> property.simpleName.asString() }
@@ -47,13 +48,23 @@ internal object ParameterHelper {
 
         targetProperties.forEach { targetProperty ->
             val targetParamName = targetProperty.simpleName.asString()
-            val sourcePropName = customMappings[targetParamName] ?: targetParamName
+
+            // Find the mapping rule for the current target property
+            val mapping = propertyMappings.firstOrNull { mapping ->
+                mapping.to == targetParamName || (mapping.to.isEmpty() && mapping.from == targetParamName)
+            }
+
+            // Determine the source property name from the rule, or fallback to the target name
+            val sourcePropName = mapping?.from ?: targetParamName
 
             sourceProperties[sourcePropName]?.let { sourceProperty ->
                 val targetType = targetProperty.type.resolve()
                 val sourceType = sourceProperty.type.resolve()
-                val conversion =
-                    getConversionExpression(sourceType = sourceType, targetType = targetType)
+                val conversion = getConversionExpression(
+                    sourceType = sourceType,
+                    targetType = targetType,
+                    defaultValue = mapping?.defaultValue.orEmpty(),
+                )
 
                 add("$targetParamName = ${sourceProperty.simpleName.asString()}$conversion")
             }
@@ -66,6 +77,7 @@ internal object ParameterHelper {
     private fun getConversionExpression(
         sourceType: KSType,
         targetType: KSType,
+        defaultValue: String?,
     ): String {
         if (sourceType == targetType) return ""
 
@@ -75,7 +87,11 @@ internal object ParameterHelper {
 
         // 2. Try Collection Conversion
         if (conversion.isEmpty()) {
-            conversion = getCollectionConversion(sourceType = sourceType, targetType = targetType)
+            conversion = getCollectionConversion(
+                sourceType = sourceType,
+                targetType = targetType,
+                defaultValue = defaultValue,
+            )
         }
 
         // 3. Try Object Conversion
@@ -86,10 +102,14 @@ internal object ParameterHelper {
         // 4. Handle Nullability
         if (sourceType.isMarkedNullable) {
             if (!targetType.isMarkedNullable) {
-                // Source? -> Target (Non-null). We need to unwrap: "!!"
-                return "!!$conversion"
+                return if (defaultValue.isNullOrEmpty()) {
+                    // No default value, use non-null assertion (potentially unsafe)
+                    "!!$conversion"
+                } else {
+                    // A default value is provided, use Elvis operator
+                    "$conversion ?: $defaultValue"
+                }
             } else {
-                // Source? -> Target?. We need safe call if conversion is present: "?"
                 if (conversion.isNotEmpty()) {
                     return "?$conversion"
                 }
@@ -105,11 +125,13 @@ internal object ParameterHelper {
      * Checks if both types are supported collections and recursively generates conversions
      * for their type arguments. Handles `List <-> Set` transformations
      *
-     * @param sourceType type of the source property
-     * @param targetType type of the target property
      * @return conversion string (e.g. ".map { it.asTarget() }") or empty string if not a supported collection conversion
      */
-    private fun getCollectionConversion(sourceType: KSType, targetType: KSType): String {
+    private fun getCollectionConversion(
+        sourceType: KSType,
+        targetType: KSType,
+        defaultValue: String?,
+    ): String {
         val sourceDeclaration = sourceType.declaration as? KSClassDeclaration ?: return ""
         val targetDeclaration = targetType.declaration as? KSClassDeclaration ?: return ""
 
@@ -124,12 +146,15 @@ internal object ParameterHelper {
             val targetArg = targetType.arguments.firstOrNull()?.type?.resolve()
 
             if (sourceArg != null && targetArg != null) {
-                val innerConversion =
-                    getConversionExpression(sourceType = sourceArg, targetType = targetArg)
+                val innerConversion = getConversionExpression(
+                    sourceType = sourceArg,
+                    targetType = targetArg,
+                    defaultValue = defaultValue,
+                )
 
                 // If elements need conversion OR container type changes (e.g. Set -> List)
                 if (innerConversion.isNotEmpty() || (isSourceSet && isTargetList) || (isSourceList && isTargetSet)) {
-                    var transformation = ".map { it$innerConversion }"
+                    var transformation = ".map { value -> value$innerConversion }"
                     if (isTargetSet) {
                         transformation += ".toSet()"
                     }
@@ -177,23 +202,20 @@ internal object ParameterHelper {
         val sourceTypeName = sourceType.declaration.simpleName.asString()
         val targetTypeName = targetType.declaration.simpleName.asString()
 
-        return when {
-            sourceTypeName == "String" && targetTypeName == "Long" -> ".toLong()"
-            sourceTypeName == "String" && targetTypeName == "Int" -> ".toInt()"
-            sourceTypeName == "String" && targetTypeName == "Double" -> ".toDouble()"
-            sourceTypeName == "String" && targetTypeName == "Float" -> ".toFloat()"
-            sourceTypeName == "String" && targetTypeName == "Boolean" -> ".toBoolean()"
-
-            sourceTypeName == "Int" && targetTypeName == "Long" -> ".toLong()"
-            sourceTypeName == "Long" && targetTypeName == "Int" -> ".toInt()"
-            sourceTypeName == "Double" && targetTypeName == "Float" -> ".toFloat()"
-            sourceTypeName == "Float" && targetTypeName == "Double" -> ".toDouble()"
-
-            sourceTypeName == "Long" && targetTypeName == "String" -> ".toString()"
-            sourceTypeName == "Int" && targetTypeName == "String" -> ".toString()"
-            sourceTypeName == "Double" && targetTypeName == "String" -> ".toString()"
-            sourceTypeName == "Boolean" && targetTypeName == "String" -> ".toString()"
-
+        return when (sourceTypeName) {
+            "String" if targetTypeName == "Long" -> ".toLong()"
+            "String" if targetTypeName == "Int" -> ".toInt()"
+            "String" if targetTypeName == "Double" -> ".toDouble()"
+            "String" if targetTypeName == "Float" -> ".toFloat()"
+            "String" if targetTypeName == "Boolean" -> ".toBoolean()"
+            "Int" if targetTypeName == "Long" -> ".toLong()"
+            "Long" if targetTypeName == "Int" -> ".toInt()"
+            "Double" if targetTypeName == "Float" -> ".toFloat()"
+            "Float" if targetTypeName == "Double" -> ".toDouble()"
+            "Long" if targetTypeName == "String" -> ".toString()"
+            "Int" if targetTypeName == "String" -> ".toString()"
+            "Double" if targetTypeName == "String" -> ".toString()"
+            "Boolean" if targetTypeName == "String" -> ".toString()"
             else -> ""
         }
     }

@@ -124,9 +124,13 @@ internal class AutoMapperProcessor(
                 val from = annotation.arguments
                     .first { arg -> arg.name?.asString() == "from" }.value as String
                 val to = annotation.arguments
-                    .first { arg -> arg.name?.asString() == "to" }.value as String
+                    .firstOrNull { arg -> arg.name?.asString() == "to" }?.value as? String
+                    ?: ""
+                val defaultValue = annotation.arguments
+                    .firstOrNull { arg -> arg.name?.asString() == "defaultValue" }?.value as? String
+                    ?: ""
 
-                PropertyMapping(from = from, to = to)
+                PropertyMapping(from = from, to = to, defaultValue = defaultValue)
             } ?: emptyList()
 
         check(parameters.size == 1) {
@@ -261,8 +265,14 @@ internal class AutoMapperProcessor(
             fileSpecBuilder.addFunction(funSpec = sourceToTargetFunBuilder.build())
 
             if (definition.reversible) {
-                val reversedMappings = definition.propertyMappings
-                    .map { property -> PropertyMapping(from = property.to, to = property.from) }
+                val reversedMappings = definition.propertyMappings.map { property ->
+                    PropertyMapping(
+                        from = property.to.ifEmpty { property.from },
+                        to = property.from,
+                        defaultValue = ""
+                    )
+                }
+
                 val targetToSourceFunBuilder =
                     FunSpec.builder(name = "as${sourceClassName.simpleName}")
                         .addModifiers(visibilityModifier)
