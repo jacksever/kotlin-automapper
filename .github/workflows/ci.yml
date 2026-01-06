@@ -3,12 +3,14 @@
 name: AutoMapper CI
 
 on:
+  push:
+    branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
 
     steps:
       # Checks out the repository code so the workflow can access it
@@ -36,10 +38,6 @@ jobs:
       # Grants execute permission to the Gradle wrapper script
       - name: Grant execute permission for gradlew
         run: chmod +x ./gradlew
-
-      # Runs the main build task to compile, test, and verify the project
-      - name: Build with Gradle
-        run: ./gradlew build
 
       # Runs the unit tests using JVM test framework
       - name: Run JVM tests
