@@ -33,10 +33,16 @@ kotlin {
         commonMain.dependencies {
             implementation(project(":automapper:annotation"))
         }
+
+        jvmTest.dependencies {
+            implementation(libs.junit)
+            implementation(kotlin("test"))
+        }
     }
 }
 
 dependencies {
     add("kspCommonMainMetadata", project(":automapper:processor"))
     add("kspJvm", project(":automapper:processor"))
+    add("kspJvmTest", project(":automapper:processor"))
 }

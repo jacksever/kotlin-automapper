@@ -41,6 +41,10 @@ jobs:
       - name: Build with Gradle
         run: ./gradlew build
 
+      # Runs the unit tests using JVM test framework
+      - name: Run JVM tests
+        run: ./gradlew jvmTest
+
       # Gradle Daemon Cleanup
       - name: Gradle Daemon Cleanup
         run: ./gradlew --stop
