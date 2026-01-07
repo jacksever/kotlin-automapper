@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Alexander Gorodnikov
+ * Copyright (c) 2026 Alexander Gorodnikov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,12 +23,16 @@ import io.github.jacksever.automapper.sample.entity.status.StatusEntity
  *
  * @property userId unique identifier of the user
  * @property name name of the user
+ * @property patronymic patronymic of the user (middle name)
  * @property age age of the user
+ * @property address address of the user
  * @property status status of the user
  */
 data class UserEntity(
     val userId: Long,
     val name: String,
+    val patronymic: String,
     val age: Int,
+    val address: String,
     val status: StatusEntity,
 )

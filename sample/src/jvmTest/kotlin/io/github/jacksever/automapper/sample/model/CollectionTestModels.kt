@@ -14,25 +14,16 @@
  * limitations under the License.
  */
 
-package io.github.jacksever.automapper.sample.domain.user
+package io.github.jacksever.automapper.sample.model
 
-import io.github.jacksever.automapper.sample.domain.status.Status
+/** Used for collection mapping tests */
+data class ItemSource(val id: Int, val name: String)
 
-/**
- * Represents a User in the domain layer
- *
- * @property id unique identifier of the user
- * @property name name of the user
- * @property age age of the user
- * @property status status of the user
- * @property address address of the user
- * @property middleName optional middle name of the user
- */
-data class User(
-    val id: Long,
-    val name: String,
-    val age: Int,
-    val status: Status,
-    val address: String? = null,
-    val middleName: String? = null,
-)
+/** Used for collection mapping tests */
+data class ItemTarget(val id: Int, val name: String)
+
+/** Used for collection mapping tests */
+data class CollectionSource(val id: Long, val items: List<ItemSource>)
+
+/** Used for collection mapping tests */
+data class CollectionTarget(val id: Long, val items: Set<ItemTarget>)

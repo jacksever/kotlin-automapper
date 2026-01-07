@@ -3,6 +3,8 @@
 name: AutoMapper CI
 
 on:
+  push:
+    branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
 
@@ -37,9 +39,9 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x ./gradlew
 
-      # Runs the main build task to compile, test, and verify the project
-      - name: Build with Gradle
-        run: ./gradlew build
+      # Runs the main check task to compile, test, and verify the project
+      - name: Run Tests & Quality Checks
+        run: ./gradlew check
 
       # Gradle Daemon Cleanup
       - name: Gradle Daemon Cleanup
