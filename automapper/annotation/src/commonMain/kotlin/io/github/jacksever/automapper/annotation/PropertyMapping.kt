@@ -22,7 +22,7 @@ package io.github.jacksever.automapper.annotation
  * @property from name of the property in the source class
  * @property to name of the property in the target class. If omitted, it is assumed to be the same as [from]
  * @property defaultValue string literal to be used as a default value if the source property is null and the target is not nullable.
- * For example, `defaultValue = "\"\""` for an empty string, or `defaultValue = "0L"` for a Long
+ * For example, `defaultValue = ""` for an empty string, or `defaultValue = "0L"` for a Long
  */
 @Target
 @Retention(AnnotationRetention.SOURCE)

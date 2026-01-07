@@ -238,7 +238,7 @@ import io.github.jacksever.automapper.annotation.PropertyMapping
         // Renames 'id' to 'userId'
         PropertyMapping(from = "id", to = "userId"),
         // Provides a default value for 'address' if it's null
-        PropertyMapping(from = "address", defaultValue = "\"Unknown\"")
+        PropertyMapping(from = "address", defaultValue = "Unknown")
     ]
 )
 fun userMapper(user: User): UserEntity
