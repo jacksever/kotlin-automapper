@@ -63,7 +63,7 @@ internal object ParameterHelper {
                 val conversion = getConversionExpression(
                     sourceType = sourceType,
                     targetType = targetType,
-                    defaultValue = mapping?.defaultValue.orEmpty(),
+                    defaultValue = mapping?.defaultValue,
                 )
 
                 add("$targetParamName = ${sourceProperty.simpleName.asString()}$conversion")
@@ -107,7 +107,7 @@ internal object ParameterHelper {
                     "!!$conversion"
                 } else {
                     // A default value is provided, use Elvis operator
-                    "$conversion ?: $defaultValue"
+                    "$conversion ?: ${formatDefaultValue(targetType, defaultValue)}"
                 }
             } else {
                 if (conversion.isNotEmpty()) {
@@ -217,6 +217,19 @@ internal object ParameterHelper {
             "Double" if targetTypeName == "String" -> ".toString()"
             "Boolean" if targetTypeName == "String" -> ".toString()"
             else -> ""
+        }
+    }
+
+    /**
+     * Formats the default value string based on the target type
+     */
+    private fun formatDefaultValue(targetType: KSType, defaultValue: String): String {
+        val isString = targetType.declaration.simpleName.asString() == "String"
+
+        return if (isString && !defaultValue.startsWith(prefix = "\"")) {
+            "\"$defaultValue\""
+        } else {
+            defaultValue
         }
     }
 

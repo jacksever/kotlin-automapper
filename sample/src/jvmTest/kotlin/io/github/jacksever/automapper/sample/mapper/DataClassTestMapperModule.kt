@@ -63,7 +63,7 @@ internal interface DataClassTestMapperModule {
         propertyMappings = [
             PropertyMapping(from = "legacyId", to = "id"),
             PropertyMapping(from = "statusNum", to = "statusText"),
-            PropertyMapping(from = "content", defaultValue = "\"Empty\""),
+            PropertyMapping(from = "content", defaultValue = "Empty"),
         ]
     )
     fun complexMapper(from: ComplexSource): ComplexTarget
@@ -78,7 +78,7 @@ internal interface DataClassTestMapperModule {
 
     @AutoMapper(
         propertyMappings = [
-            PropertyMapping(from = "description", defaultValue = "\"Default\""),
+            PropertyMapping(from = "description", defaultValue = "Default"),
         ]
     )
     fun defaultValueMapper(from: DefaultValueSource): DefaultValueTarget

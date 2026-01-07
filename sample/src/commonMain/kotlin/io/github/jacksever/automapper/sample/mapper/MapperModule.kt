@@ -48,8 +48,8 @@ internal interface MapperModule {
     @AutoMapper(
         propertyMappings = [
             PropertyMapping(from = "id", to = "userId"),
-            PropertyMapping(from = "address", defaultValue = "\"Unknown\""),
-            PropertyMapping(from = "middleName", to = "patronymic", defaultValue = "\"N/A\"")
+            PropertyMapping(from = "address", defaultValue = "Unknown"),
+            PropertyMapping(from = "middleName", to = "patronymic", defaultValue = "N/A")
         ]
     )
     fun userMapper(user: User): UserEntity
@@ -63,7 +63,7 @@ internal interface MapperModule {
     @AutoMapper(
         reversible = false,
         propertyMappings = [
-            PropertyMapping(from = "address", defaultValue = "\"Unknown\""),
+            PropertyMapping(from = "address", defaultValue = "Unknown"),
         ]
     )
     fun uiUserMapper(user: User): UiUser
