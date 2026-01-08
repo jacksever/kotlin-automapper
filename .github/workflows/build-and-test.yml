@@ -34,4 +34,5 @@ jobs:
 
       # Gradle Daemon Cleanup
       - name: Gradle Daemon Cleanup
+        if: always()
         run: ./gradlew --stop

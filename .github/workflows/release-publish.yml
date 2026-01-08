@@ -67,3 +67,8 @@ jobs:
           tag: '${{ steps.get_version.outputs.version }}'
           name: '${{ steps.get_version.outputs.version }}'
           generateReleaseNotes: true
+
+      # Gradle Daemon Cleanup
+      - name: Gradle Daemon Cleanup
+        if: always()
+        run: ./gradlew --stop
