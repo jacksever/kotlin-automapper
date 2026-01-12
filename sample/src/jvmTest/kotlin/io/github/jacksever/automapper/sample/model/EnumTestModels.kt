@@ -33,3 +33,14 @@ enum class UnmappedEnumSource { MAPPED, UNMAPPED }
 
 /** Used to test runtime failure for unmapped enum constants */
 enum class UnmappedEnumTarget { MAPPED }
+
+/** Enum for testing default value assignment */
+enum class Priority {
+    LOW, MEDIUM, HIGH
+}
+
+/** Used for testing default enum value mapping */
+data class EnumDefaultValueSource(val id: Int)
+
+/** Used for testing default enum value mapping */
+data class EnumDefaultValueTarget(val id: Int, val priority: Priority)

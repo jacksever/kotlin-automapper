@@ -19,6 +19,8 @@ package io.github.jacksever.automapper.sample.mapper
 import io.github.jacksever.automapper.annotation.AutoMapper
 import io.github.jacksever.automapper.annotation.AutoMapperModule
 import io.github.jacksever.automapper.annotation.PropertyMapping
+import io.github.jacksever.automapper.sample.model.EnumDefaultValueSource
+import io.github.jacksever.automapper.sample.model.EnumDefaultValueTarget
 import io.github.jacksever.automapper.sample.model.RenameEnumSource
 import io.github.jacksever.automapper.sample.model.RenameEnumTarget
 import io.github.jacksever.automapper.sample.model.SimpleEnumSource
@@ -43,4 +45,11 @@ internal interface EnumTestMapperModule {
         ]
     )
     fun renameMapper(from: RenameEnumSource): RenameEnumTarget
+
+    @AutoMapper(
+        propertyMappings = [
+            PropertyMapping(from = "priority", defaultValue = "HIGH")
+        ]
+    )
+    fun enumDefaultValueMapper(from: EnumDefaultValueSource): EnumDefaultValueTarget
 }

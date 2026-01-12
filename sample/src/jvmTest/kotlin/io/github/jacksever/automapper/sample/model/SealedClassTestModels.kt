@@ -16,7 +16,7 @@
 
 package io.github.jacksever.automapper.sample.model
 
-/** Used for simple 1-to-1 sealed mapping test */
+/** Used for a simple sealed class mapping test */
 sealed interface SimpleSealedSource {
 
     data object A : SimpleSealedSource
@@ -24,7 +24,7 @@ sealed interface SimpleSealedSource {
     data class B(val value: Int) : SimpleSealedSource
 }
 
-/** Used for simple 1-to-1 sealed mapping test */
+/** Used for a simple sealed class mapping test */
 sealed interface SimpleSealedTarget {
 
     data object A : SimpleSealedTarget
@@ -32,18 +32,46 @@ sealed interface SimpleSealedTarget {
     data class B(val value: Int) : SimpleSealedTarget
 }
 
-/** Used for testing sealed mapping with leaf renaming and property renaming */
+/** Used for a sealed class mapping test with leaf renaming */
 sealed interface ComplexSealedSource {
-
-    data object Common : ComplexSealedSource
 
     data class LeafSource(val sourceName: String) : ComplexSealedSource
 }
 
-/** Used for testing sealed mapping with leaf renaming and property renaming */
+/** Used for a sealed class mapping test with leaf renaming */
 sealed interface ComplexSealedTarget {
-
-    data object Common : ComplexSealedTarget
 
     data class LeafTarget(val targetName: String) : ComplexSealedTarget
 }
+
+/** Used for testing default value for a property within a sealed class leaf */
+sealed interface SealedWithDefaultSource {
+
+    object A : SealedWithDefaultSource
+
+    data class B(val id: Int, val description: String?) : SealedWithDefaultSource
+}
+
+/** Used for testing default value for a property within a sealed class leaf */
+sealed interface SealedWithDefaultTarget {
+
+    object A : SealedWithDefaultTarget
+
+    data class B(val id: Int, val description: String) : SealedWithDefaultTarget
+}
+
+/** Used to test providing a default value for a sealed type property */
+sealed interface TaskState {
+
+    data object Default : TaskState
+
+    data class InProgress(val percent: Int) : TaskState
+
+    data object Completed : TaskState
+}
+
+/** A source class that does NOT have a state property */
+data class SourceWithMissingState(val id: String)
+
+/** The test will provide a default value for this property during mapping */
+data class TargetWithDefaultState(val id: String, val state: TaskState)

@@ -17,15 +17,22 @@
 package io.github.jacksever.automapper.sample
 
 import io.github.jacksever.automapper.sample.mapper.asComplexSealedTarget
+import io.github.jacksever.automapper.sample.mapper.asSealedWithDefaultTarget
 import io.github.jacksever.automapper.sample.mapper.asSimpleSealedTarget
+import io.github.jacksever.automapper.sample.mapper.asTargetWithDefaultState
 import io.github.jacksever.automapper.sample.model.ComplexSealedSource
 import io.github.jacksever.automapper.sample.model.ComplexSealedTarget
+import io.github.jacksever.automapper.sample.model.SealedWithDefaultSource
+import io.github.jacksever.automapper.sample.model.SealedWithDefaultTarget
 import io.github.jacksever.automapper.sample.model.SimpleSealedSource
 import io.github.jacksever.automapper.sample.model.SimpleSealedTarget
+import io.github.jacksever.automapper.sample.model.SourceWithMissingState
+import io.github.jacksever.automapper.sample.model.TaskState
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 @RunWith(value = JUnit4::class)
 class SealedClassMappingTest {
@@ -54,13 +61,45 @@ class SealedClassMappingTest {
         val target = source.asComplexSealedTarget()
 
         // Then
-        assertEquals(
-            expected = true,
-            actual = target is ComplexSealedTarget.LeafTarget
-        )
-        assertEquals(
-            expected = "test",
-            actual = (target as ComplexSealedTarget.LeafTarget).targetName
-        )
+        assertTrue(actual = target is ComplexSealedTarget.LeafTarget)
+        assertEquals(expected = "test", actual = target.targetName)
+    }
+
+    @Test
+    fun `test default value for sealed class property`() {
+        // Given
+        val source = SourceWithMissingState(id = "task-123")
+
+        // When
+        val target = source.asTargetWithDefaultState()
+
+        // Then
+        assertEquals(expected = source.id, actual = target.id)
+        assertEquals(expected = TaskState.Default, actual = target.state)
+    }
+
+    @Test
+    fun `test default value for property inside sealed leaf`() {
+        // Given a source leaf with a null property
+        val source = SealedWithDefaultSource.B(id = 1, description = null)
+
+        // When
+        val target = source.asSealedWithDefaultTarget()
+
+        // Then the target should be of the correct type and have the default value
+        assertTrue(actual = target is SealedWithDefaultTarget.B)
+        assertEquals(expected = 1, actual = target.id)
+        assertEquals(expected = "Default Description", actual = target.description)
+
+        // Given a source leaf with a non-null property
+        val sourceWithValue = SealedWithDefaultSource.B(id = 2, description = "Not Default")
+
+        // When
+        val targetWithValue = sourceWithValue.asSealedWithDefaultTarget()
+
+        // Then the target should retain the original value
+        assertTrue(actual = targetWithValue is SealedWithDefaultTarget.B)
+        assertEquals(expected = 2, actual = targetWithValue.id)
+        assertEquals(expected = "Not Default", actual = targetWithValue.description)
     }
 }

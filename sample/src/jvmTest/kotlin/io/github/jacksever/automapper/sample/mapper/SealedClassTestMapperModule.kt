@@ -21,8 +21,12 @@ import io.github.jacksever.automapper.annotation.AutoMapperModule
 import io.github.jacksever.automapper.annotation.PropertyMapping
 import io.github.jacksever.automapper.sample.model.ComplexSealedSource
 import io.github.jacksever.automapper.sample.model.ComplexSealedTarget
+import io.github.jacksever.automapper.sample.model.SealedWithDefaultSource
+import io.github.jacksever.automapper.sample.model.SealedWithDefaultTarget
 import io.github.jacksever.automapper.sample.model.SimpleSealedSource
 import io.github.jacksever.automapper.sample.model.SimpleSealedTarget
+import io.github.jacksever.automapper.sample.model.SourceWithMissingState
+import io.github.jacksever.automapper.sample.model.TargetWithDefaultState
 
 @AutoMapperModule
 internal interface SealedClassTestMapperModule {
@@ -38,4 +42,18 @@ internal interface SealedClassTestMapperModule {
         ]
     )
     fun complexMapper(from: ComplexSealedSource): ComplexSealedTarget
+
+    @AutoMapper(
+        propertyMappings = [
+            PropertyMapping(from = "description", defaultValue = "Default Description")
+        ]
+    )
+    fun sealedWithDefaultMapper(from: SealedWithDefaultSource): SealedWithDefaultTarget
+
+    @AutoMapper(
+        propertyMappings = [
+            PropertyMapping(from = "state", defaultValue = "Default")
+        ]
+    )
+    fun sealedStateDefaultValueMapper(from: SourceWithMissingState): TargetWithDefaultState
 }

@@ -16,9 +16,12 @@
 
 package io.github.jacksever.automapper.sample
 
+import io.github.jacksever.automapper.sample.mapper.asEnumDefaultValueTarget
 import io.github.jacksever.automapper.sample.mapper.asRenameEnumTarget
 import io.github.jacksever.automapper.sample.mapper.asSimpleEnumTarget
 import io.github.jacksever.automapper.sample.mapper.asUnmappedEnumTarget
+import io.github.jacksever.automapper.sample.model.EnumDefaultValueSource
+import io.github.jacksever.automapper.sample.model.Priority
 import io.github.jacksever.automapper.sample.model.RenameEnumSource
 import io.github.jacksever.automapper.sample.model.RenameEnumTarget
 import io.github.jacksever.automapper.sample.model.SimpleEnumSource
@@ -72,5 +75,18 @@ class EnumMappingTest {
         assertFailsWith<IllegalArgumentException> {
             unmappedSource.asUnmappedEnumTarget()
         }
+    }
+
+    @Test
+    fun `test default value for enum property`() {
+        // Given
+        val source = EnumDefaultValueSource(id = 1)
+
+        // When
+        val target = source.asEnumDefaultValueTarget()
+
+        // Then
+        assertEquals(expected = source.id, actual = target.id)
+        assertEquals(expected = Priority.HIGH, actual = target.priority)
     }
 }
