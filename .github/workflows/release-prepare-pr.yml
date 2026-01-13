@@ -1,6 +1,6 @@
-# This workflow prepares a new release by creating a pull request from 'develop' to 'main'
+# This workflow prepares a new release by creating a pull request from a new release branch to 'main'
 
-name: AutoMapper Prepare Release
+name: 'Release: Prepare PR'
 
 on:
   # Allows this workflow to be triggered manually from the Actions tab
@@ -19,7 +19,7 @@ jobs:
     steps:
       # Checks out the 'main' branch to get the latest changes
       - name: Checkout main branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: 'main'
 
