@@ -16,8 +16,14 @@
 
 package io.github.jacksever.automapper.processor.helper
 
+import com.google.devtools.ksp.processing.KSPLogger
+import com.google.devtools.ksp.symbol.ClassKind
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSType
+import com.google.devtools.ksp.symbol.Modifier
+import com.squareup.kotlinpoet.CodeBlock
+import com.squareup.kotlinpoet.buildCodeBlock
+import com.squareup.kotlinpoet.ksp.toClassName
 import io.github.jacksever.automapper.annotation.PropertyMapping
 
 /**
@@ -29,44 +35,94 @@ import io.github.jacksever.automapper.annotation.PropertyMapping
 internal object ParameterHelper {
 
     /**
-     * Builds a list of constructor parameter assignments for the target class
+     * Builds a list of constructor parameter assignments as [CodeBlock]s for the target class
      * based on properties from the source class, applying custom mappings
      *
+     * @param logger KSP logger
      * @param sourceClass source class declaration
      * @param targetClass target class declaration
      * @param propertyMappings list of custom property mappings
-     * @return List of strings representing constructor arguments (e.g., "id = sourceId")
+     * @return List of [CodeBlock]s representing constructor arguments (e.g., `id = source.id`)
      */
     fun buildConstructorParameters(
+        logger: KSPLogger,
         sourceClass: KSClassDeclaration,
         targetClass: KSClassDeclaration,
         propertyMappings: List<PropertyMapping> = emptyList(),
-    ): List<String> = buildList {
+    ): List<CodeBlock> = buildList {
+        val targetConstructor = targetClass.primaryConstructor
         val sourceProperties = sourceClass.getAllProperties()
             .associateBy { property -> property.simpleName.asString() }
-        val targetProperties = targetClass.getAllProperties().toList()
 
-        targetProperties.forEach { targetProperty ->
-            val targetParamName = targetProperty.simpleName.asString()
+        if (targetConstructor == null) {
+            logger.error(
+                message = "Target class ${targetClass.simpleName.asString()} must have a primary constructor",
+                symbol = targetClass
+            )
+            return@buildList
+        }
 
-            // Find the mapping rule for the current target property
-            val mapping = propertyMappings.firstOrNull { mapping ->
-                mapping.to == targetParamName || (mapping.to.isEmpty() && mapping.from == targetParamName)
+        targetConstructor.parameters.forEach { targetParameter ->
+            val targetParameterName = targetParameter.name?.asString() ?: run {
+                logger.error(
+                    message = "Unnamed constructor parameter in ${targetClass.simpleName.asString()}",
+                    symbol = targetParameter
+                )
+                return@forEach
             }
 
-            // Determine the source property name from the rule, or fallback to the target name
-            val sourcePropName = mapping?.from ?: targetParamName
+            val mapping = propertyMappings.firstOrNull { mapping ->
+                mapping.to == targetParameterName || (mapping.to.isEmpty() && mapping.from == targetParameterName)
+            }
 
-            sourceProperties[sourcePropName]?.let { sourceProperty ->
-                val targetType = targetProperty.type.resolve()
-                val sourceType = sourceProperty.type.resolve()
-                val conversion = getConversionExpression(
-                    sourceType = sourceType,
-                    targetType = targetType,
-                    defaultValue = mapping?.defaultValue,
-                )
+            val sourcePropertyName = mapping?.from ?: targetParameterName
+            val sourceProperty = sourceProperties[sourcePropertyName]
+            val defaultValue = mapping?.defaultValue?.takeIf { value -> value.isNotEmpty() }
 
-                add("$targetParamName = ${sourceProperty.simpleName.asString()}$conversion")
+            when {
+                sourceProperty != null -> {
+                    val conversion = getConversionExpression(
+                        sourceType = sourceProperty.type.resolve(),
+                        targetType = targetParameter.type.resolve(),
+                        defaultValue = mapping?.defaultValue,
+                    )
+
+                    add(
+                        buildCodeBlock {
+                            add(
+                                "%L = %L%L",
+                                targetParameterName,
+                                sourceProperty.simpleName.asString(),
+                                conversion
+                            )
+                        }
+                    )
+                }
+
+                defaultValue != null -> {
+                    val targetType = targetParameter.type.resolve()
+                    val formattedValue = formatDefaultValue(targetType, defaultValue)
+
+                    add(buildCodeBlock { add("%L = %L", targetParameterName, formattedValue) })
+                }
+
+                targetParameter.hasDefault -> {
+                    /* Do nothing, let the compiler use the default value */
+                }
+
+                targetParameter.type.resolve().isMarkedNullable -> {
+                    add(buildCodeBlock { add("%L = null", targetParameterName) })
+                }
+
+                else -> {
+                    logger.error(
+                        message = buildString {
+                            append("Cannot map property '$targetParameterName' for ${targetClass.qualifiedName?.asString()}. ")
+                            append("No matching property found in ${sourceClass.qualifiedName?.asString()} and no default value is provided")
+                        },
+                        symbol = targetParameter
+                    )
+                }
             }
         }
     }
@@ -221,17 +277,35 @@ internal object ParameterHelper {
     }
 
     /**
-     * Formats the default value string based on the target type
+     * Formats the default value string into a [CodeBlock] based on the target type
      */
-    private fun formatDefaultValue(targetType: KSType, defaultValue: String): String {
-        val isString = targetType.declaration.simpleName.asString() == "String"
+    private fun formatDefaultValue(targetType: KSType, defaultValue: String): CodeBlock {
+        val targetTypeName = targetType.declaration.simpleName.asString()
 
-        return if (isString && !defaultValue.startsWith(prefix = "\"")) {
-            "\"$defaultValue\""
-        } else {
-            defaultValue
+        return when {
+            targetTypeName == "String" -> CodeBlock.of("%S", defaultValue)
+            targetTypeName == "Char" -> CodeBlock.of("'%L'", defaultValue.trim('\''))
+            targetType.isEnum() || targetType.isSealed() -> {
+                val entry = defaultValue.substringAfterLast(delimiter = '.')
+                val className = (targetType.declaration as KSClassDeclaration).toClassName()
+
+                CodeBlock.of("%T.%L", className, entry)
+            }
+
+            else -> CodeBlock.of("%L", defaultValue)
         }
     }
+
+    /**
+     * Checks if the [KSType] represents an enum class
+     */
+    private fun KSType.isEnum(): Boolean =
+        (declaration as? KSClassDeclaration)?.classKind == ClassKind.ENUM_CLASS
+
+    /**
+     * Checks if the [KSType] represents a sealed class
+     */
+    private fun KSType.isSealed(): Boolean = declaration.modifiers.contains(Modifier.SEALED)
 
     /**
      * Checks if the class declaration corresponds to a List type (Kotlin or Java)

@@ -35,13 +35,14 @@ internal object MapperBuilderFactory {
      *
      * - Returns [EnumMapperBuilder] if both source and target are Enums
      * - Returns [SealedMapperBuilder] if both source and target are Sealed classes/interfaces
-     * - Returns [DataMapperBuilder] otherwise (default strategy for Data classes)
+     * - Returns [DataMapperBuilder] if both source and target are Data classes
      *
      * @param logger logger for reporting information or warnings during builder creation
      * @param source source class declaration
      * @param target target class declaration
      * @param propertyMappings list of custom property mappings
      * @return Concrete implementation of [MapperBuilder]
+     * @throws IllegalStateException if the class types are not supported for mapping
      */
     fun getMapperBuilder(
         logger: KSPLogger,
@@ -51,6 +52,9 @@ internal object MapperBuilderFactory {
     ): MapperBuilder {
         val isSourceEnum = source.classKind == ClassKind.ENUM_CLASS
         val isTargetEnum = target.classKind == ClassKind.ENUM_CLASS
+
+        val isSourceData = source.modifiers.contains(Modifier.DATA)
+        val isTargetData = target.modifiers.contains(Modifier.DATA)
 
         val isSourceSealed = source.modifiers.contains(Modifier.SEALED)
         val isTargetSealed = target.modifiers.contains(Modifier.SEALED)
@@ -66,7 +70,22 @@ internal object MapperBuilderFactory {
                 propertyMappings = propertyMappings,
             )
 
-            else -> DataMapperBuilder(propertyMappings = propertyMappings)
+            isSourceData && isTargetData -> DataMapperBuilder(
+                logger = logger,
+                propertyMappings = propertyMappings,
+            )
+
+            else -> {
+                logger.error(
+                    message = buildString {
+                        append("Unsupported mapping from ${source.qualifiedName?.asString()} to ${target.qualifiedName?.asString()}. ")
+                        append("The processor supports mapping only between matching pairs of types: (Enum, Enum), (Sealed, Sealed), or (Data, Data)")
+                    },
+                    symbol = source
+                )
+
+                throw IllegalStateException("Unsupported mapping configuration. See KSP logs for details")
+            }
         }
     }
 }

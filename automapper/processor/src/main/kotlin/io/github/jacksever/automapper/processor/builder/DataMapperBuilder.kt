@@ -16,6 +16,7 @@
 
 package io.github.jacksever.automapper.processor.builder
 
+import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.buildCodeBlock
@@ -30,6 +31,7 @@ import io.github.jacksever.automapper.processor.helper.ParameterHelper.buildCons
  * the source class properties. It now supports custom mappings for properties with different names
  */
 internal class DataMapperBuilder(
+    private val logger: KSPLogger,
     private val propertyMappings: List<PropertyMapping>,
 ) : MapperBuilder {
 
@@ -47,14 +49,15 @@ internal class DataMapperBuilder(
     override fun buildConversion(from: KSClassDeclaration, to: KSClassDeclaration): CodeBlock =
         buildCodeBlock {
             val params = buildConstructorParameters(
-                sourceClass = from,
+                logger = logger,
                 targetClass = to,
+                sourceClass = from,
                 propertyMappings = propertyMappings,
             )
 
             add("return %T(\n", to.toClassName())
             indent()
-            params.forEach { param -> addStatement("$param,") }
+            params.forEach { param -> addStatement("%L,", param) }
             unindent()
             add(")")
         }

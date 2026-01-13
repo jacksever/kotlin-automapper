@@ -95,6 +95,7 @@ internal class SealedMapperBuilder(
                     addStatement("%T -> %T", source.toClassName(), targetSub.toClassName())
                 } else {
                     val params = buildConstructorParameters(
+                        logger = logger,
                         sourceClass = source,
                         targetClass = targetSub,
                         propertyMappings = fieldMappings,
@@ -102,7 +103,7 @@ internal class SealedMapperBuilder(
 
                     add("is %T -> %T(\n", source.toClassName(), targetSub.toClassName())
                     indent()
-                    params.forEach { param -> addStatement("$param,") }
+                    params.forEach { param -> addStatement("%L,", param) }
                     unindent()
                     add(")\n")
                 }
