@@ -23,6 +23,7 @@ import com.google.devtools.ksp.symbol.Modifier
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.buildCodeBlock
 import com.squareup.kotlinpoet.ksp.toClassName
+import io.github.jacksever.automapper.annotation.DefaultValue
 import io.github.jacksever.automapper.annotation.PropertyMapping
 import io.github.jacksever.automapper.processor.helper.ParameterHelper.buildConstructorParameters
 
@@ -38,6 +39,7 @@ import io.github.jacksever.automapper.processor.helper.ParameterHelper.buildCons
  */
 internal class SealedMapperBuilder(
     private val logger: KSPLogger,
+    private val defaultValues: List<DefaultValue>,
     private val propertyMappings: List<PropertyMapping>,
 ) : MapperBuilder {
 
@@ -98,6 +100,7 @@ internal class SealedMapperBuilder(
                         logger = logger,
                         sourceClass = source,
                         targetClass = targetSub,
+                        defaultValues = defaultValues,
                         propertyMappings = fieldMappings,
                     )
 

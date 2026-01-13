@@ -17,27 +17,28 @@
 package io.github.jacksever.automapper.annotation
 
 /**
- * Defines a single mapping rule for renaming a property
+ * Provides a default value for a property in the target class when no corresponding
+ * source property is available for mapping
  *
- * This is used within the `@AutoMapper` annotation to map a property from a source name
- * to a different target name
+ * This is used within the `@AutoMapper` annotation to provide fallback values for properties
+ * that cannot be mapped from the source object
  *
  * Example:
  * ```
  * @AutoMapper(
- *     propertyMappings = [
- *         PropertyMapping(from = "firstName", to = "name")
+ *     defaultValues = [
+ *         DefaultValue(property = "status", value = "DEFAULT")
  *     ]
  * )
- * fun sourceMapper(source: SourceClass): TargetClass
+ * fun sourceMapping(source: SourceClass): TargetClass
  * ```
  *
- * @property from name of the property in the source class
- * @property to name of the property in the target class
+ * @property property name of the property in the target class
+ * @property value string representation of the default value
  */
 @Target
 @Retention(AnnotationRetention.SOURCE)
-annotation class PropertyMapping(
-    val from: String,
-    val to: String,
+annotation class DefaultValue(
+    val property: String,
+    val value: String,
 )

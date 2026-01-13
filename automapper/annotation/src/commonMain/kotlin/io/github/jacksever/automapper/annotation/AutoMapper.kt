@@ -17,17 +17,39 @@
 package io.github.jacksever.automapper.annotation
 
 /**
- * Marks a function as a mapping definition for the AutoMapper processor
+ * Marks a function within an `@AutoMapperModule` as a mapping definition
  *
- * This annotation should be applied to a function inside an interface marked with [AutoMapperModule]
+ * The function signature must have one parameter (the source) and a return type (the target).
+ * The processor will generate extension functions based on this signature
  *
- * @property reversible if `true` (default), the processor will also generate a reverse mapping function
- * (Target -> Source) in addition to the direct mapping (Source -> Target). If `false`, only the direct mapping is generated
- * @property propertyMappings array of [PropertyMapping] rules to handle properties with different names
+ * Example of a simple mapper:
+ * ```
+ * @AutoMapper
+ * fun userMapper(user: User): UserDto
+ * ```
+ *
+ * Example with customizations:
+ * ```
+ * @AutoMapper(
+ *     reversible = true,
+ *     defaultValues = [
+ *          DefaultValue(property = "role", value = "GUEST")
+ *     ],
+ *     propertyMappings = [
+ *         PropertyMapping(from = "firstName", to = "name")
+ *     ]
+ * )
+ * fun userMapper(user: User): UserDto
+ * ```
+ *
+ * @property reversible if `true`, the processor will also generate a mapping from target to source
+ * @property defaultValues list of [DefaultValue] rules for providing values for unmapped properties
+ * @property propertyMappings list of [PropertyMapping] rules for renaming properties or handling nullability
  */
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.SOURCE)
 annotation class AutoMapper(
     val reversible: Boolean = true,
+    val defaultValues: Array<DefaultValue> = [],
     val propertyMappings: Array<PropertyMapping> = [],
 )

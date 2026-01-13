@@ -34,6 +34,7 @@ import com.squareup.kotlinpoet.ksp.toClassName
 import com.squareup.kotlinpoet.ksp.writeTo
 import io.github.jacksever.automapper.annotation.AutoMapper
 import io.github.jacksever.automapper.annotation.AutoMapperModule
+import io.github.jacksever.automapper.annotation.DefaultValue
 import io.github.jacksever.automapper.annotation.PropertyMapping
 import io.github.jacksever.automapper.processor.builder.MapperBuilderFactory
 import io.github.jacksever.automapper.processor.model.MapperDefinition
@@ -51,18 +52,18 @@ internal class AutoMapperProcessor(
 ) : SymbolProcessor {
 
     override fun process(resolver: Resolver): List<KSAnnotated> = runCatching {
-        logger.info("AutoMapperProcessor: Starting processing round...")
+        logger.info(message = "AutoMapperProcessor: Starting processing round...")
 
         val symbols =
             resolver.getSymbolsWithAnnotation(checkNotNull(AutoMapperModule::class.qualifiedName))
         val (validSymbols, invalidSymbols) = symbols.partition { symbol -> symbol.validate() }
 
-        logger.info("AutoMapperProcessor: Found ${symbols.toList().size} annotated symbols. Valid: ${validSymbols.size}, Invalid (deferred): ${invalidSymbols.size}")
+        logger.info(message = "AutoMapperProcessor: Found ${symbols.toList().size} annotated symbols. Valid: ${validSymbols.size}, Invalid (deferred): ${invalidSymbols.size}")
 
         validSymbols
             .filterIsInstance<KSClassDeclaration>()
             .forEach { module ->
-                logger.info("AutoMapperProcessor: Processing module '${module.simpleName.asString()}'")
+                logger.info(message = "AutoMapperProcessor: Processing module '${module.simpleName.asString()}'")
 
                 val mappers = module.declarations
                     .filterIsInstance<KSFunctionDeclaration>()
@@ -89,11 +90,11 @@ internal class AutoMapperProcessor(
                 }
             }
 
-        logger.info("AutoMapperProcessor: Round processing finished successfully")
+        logger.info(message = "AutoMapperProcessor: Round processing finished successfully")
 
         invalidSymbols
     }.getOrElse { throwable ->
-        logger.error("AutoMapperProcessor: Critical error during processing: ${throwable.message}")
+        logger.error(message = "AutoMapperProcessor: Critical error during processing: ${throwable.message}")
         throwable.printStackTrace()
 
         emptyList()
@@ -112,26 +113,23 @@ internal class AutoMapperProcessor(
     ): MapperDefinition? = runCatching {
         val parameters = function.parameters
         val functionName = function.simpleName.asString()
-        val reversible = mapperAnnotation.arguments
-            .firstOrNull { args -> args.name?.asString() == "reversible" }
-            ?.value as? Boolean ?: true
-        val mappings = mapperAnnotation.arguments
-            .firstOrNull { args -> args.name?.asString() == "propertyMappings" }
-            ?.value as? List<*>
-        val propertyMappings = mappings
-            ?.filterIsInstance<KSAnnotation>()
-            ?.map { annotation ->
-                val from = annotation.arguments
-                    .first { arg -> arg.name?.asString() == "from" }.value as String
-                val to = annotation.arguments
-                    .firstOrNull { arg -> arg.name?.asString() == "to" }?.value as? String
-                    ?: ""
-                val defaultValue = annotation.arguments
-                    .firstOrNull { arg -> arg.name?.asString() == "defaultValue" }?.value as? String
-                    ?: ""
-
-                PropertyMapping(from = from, to = to, defaultValue = defaultValue)
-            } ?: emptyList()
+        val reversible = mapperAnnotation.getArgument(name = "reversible") as? Boolean ?: true
+        val propertyMappings = mapperAnnotation.getAnnotations(name = "propertyMappings")
+            .map { annotation ->
+                PropertyMapping(
+                    from = annotation.getArgument(name = "from") as String,
+                    to = annotation.getArgument(name = "to") as String,
+                )
+            }
+            .toList()
+        val defaultValues = mapperAnnotation.getAnnotations(name = "defaultValues")
+            .map { annotation ->
+                DefaultValue(
+                    property = annotation.getArgument(name = "property") as String,
+                    value = annotation.getArgument(name = "value") as String,
+                )
+            }
+            .toList()
 
         check(parameters.size == 1) {
             "Function '$functionName' annotated with @AutoMapper must have exactly one parameter representing the source object"
@@ -143,22 +141,23 @@ internal class AutoMapperProcessor(
             "Function '$functionName' annotated with @AutoMapper must declare a return type representing the target object"
         }
         val sourceClass = requireNotNull(sourceType.declaration as? KSClassDeclaration) {
-            "Source type '${sourceType}' in function '$functionName' must be a class"
+            "Source type '$sourceType' in function '$functionName' must be a class"
         }
         val targetClass = requireNotNull(targetType.declaration as? KSClassDeclaration) {
-            "Target type '${targetType}' in function '$functionName' must be a class"
+            "Target type '$targetType' in function '$functionName' must be a class"
         }
 
         MapperDefinition(
             source = sourceClass,
             target = targetClass,
             reversible = reversible,
+            defaultValues = defaultValues,
             propertyMappings = propertyMappings,
         )
     }.onFailure { throwable ->
         logger.error(
-            "AutoMapperProcessor: Failed to process mapper function '${function.simpleName.asString()}': ${throwable.message}",
-            function
+            message = "AutoMapperProcessor: Failed to process mapper function '${function.simpleName.asString()}': ${throwable.message}",
+            symbol = function
         )
     }.getOrNull()
 
@@ -176,7 +175,7 @@ internal class AutoMapperProcessor(
         val fileName = "${sourceClass.toClassName().simpleName}Mapper"
         val packageName = module.containingFile?.packageName?.asString().orEmpty()
 
-        logger.info("AutoMapperProcessor: Generating mapper file '$fileName' for source class '${sourceClass.toClassName()}'")
+        logger.info(message = "AutoMapperProcessor: Generating mapper file '$fileName' for source class '${sourceClass.toClassName()}'")
 
         runCatching {
             val fileSpec = buildFileSpec(
@@ -200,9 +199,9 @@ internal class AutoMapperProcessor(
                 dependencies = Dependencies(aggregating = false, *dependencies)
             )
 
-            logger.info("AutoMapperProcessor: Successfully generated '$fileName'")
+            logger.info(message = "AutoMapperProcessor: Successfully generated '$fileName'")
         }.onFailure { throwable ->
-            logger.error("AutoMapperProcessor: Failed to generate mapper file '$fileName': ${throwable.message}")
+            logger.error(message = "AutoMapperProcessor: Failed to generate mapper file '$fileName': ${throwable.message}")
             throwable.printStackTrace()
         }
     }
@@ -258,6 +257,7 @@ internal class AutoMapperProcessor(
                             logger = logger,
                             source = definition.source,
                             target = definition.target,
+                            defaultValues = definition.defaultValues,
                             propertyMappings = definition.propertyMappings,
                         ).buildConversion(from = definition.source, to = definition.target)
                     )
@@ -267,9 +267,8 @@ internal class AutoMapperProcessor(
             if (definition.reversible) {
                 val reversedMappings = definition.propertyMappings.map { property ->
                     PropertyMapping(
-                        from = property.to.ifEmpty { property.from },
+                        from = property.to,
                         to = property.from,
-                        defaultValue = ""
                     )
                 }
 
@@ -284,6 +283,7 @@ internal class AutoMapperProcessor(
                                 logger = logger,
                                 source = definition.target,
                                 target = definition.source,
+                                defaultValues = emptyList(), // Default values are not reversed
                                 propertyMappings = reversedMappings,
                             ).buildConversion(from = definition.target, to = definition.source)
                         )
@@ -294,4 +294,17 @@ internal class AutoMapperProcessor(
 
         return fileSpecBuilder.build()
     }
+
+    /**
+     * Safely retrieves the value of an annotation argument by its [name]
+     */
+    private fun KSAnnotation.getArgument(name: String) =
+        arguments.firstOrNull { arg -> arg.name?.asString() == name }?.value
+
+    /**
+     * Safely retrieves a list of nested annotations from an argument by its [name]
+     */
+    private fun KSAnnotation.getAnnotations(name: String) = (getArgument(name) as? List<*>)
+        ?.filterIsInstance<KSAnnotation>()
+        ?: emptyList()
 }

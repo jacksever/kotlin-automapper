@@ -20,6 +20,7 @@ import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.symbol.ClassKind
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.Modifier
+import io.github.jacksever.automapper.annotation.DefaultValue
 import io.github.jacksever.automapper.annotation.PropertyMapping
 
 /**
@@ -40,6 +41,7 @@ internal object MapperBuilderFactory {
      * @param logger logger for reporting information or warnings during builder creation
      * @param source source class declaration
      * @param target target class declaration
+     * @param defaultValues list of default value mappings
      * @param propertyMappings list of custom property mappings
      * @return Concrete implementation of [MapperBuilder]
      * @throws IllegalStateException if the class types are not supported for mapping
@@ -48,6 +50,7 @@ internal object MapperBuilderFactory {
         logger: KSPLogger,
         source: KSClassDeclaration,
         target: KSClassDeclaration,
+        defaultValues: List<DefaultValue>,
         propertyMappings: List<PropertyMapping>,
     ): MapperBuilder {
         val isSourceEnum = source.classKind == ClassKind.ENUM_CLASS
@@ -67,11 +70,13 @@ internal object MapperBuilderFactory {
 
             isSourceSealed && isTargetSealed -> SealedMapperBuilder(
                 logger = logger,
+                defaultValues = defaultValues,
                 propertyMappings = propertyMappings,
             )
 
             isSourceData && isTargetData -> DataMapperBuilder(
                 logger = logger,
+                defaultValues = defaultValues,
                 propertyMappings = propertyMappings,
             )
 

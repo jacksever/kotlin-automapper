@@ -24,6 +24,7 @@ import com.google.devtools.ksp.symbol.Modifier
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.buildCodeBlock
 import com.squareup.kotlinpoet.ksp.toClassName
+import io.github.jacksever.automapper.annotation.DefaultValue
 import io.github.jacksever.automapper.annotation.PropertyMapping
 
 /**
@@ -41,6 +42,7 @@ internal object ParameterHelper {
      * @param logger KSP logger
      * @param sourceClass source class declaration
      * @param targetClass target class declaration
+     * @param defaultValues list of default value mappings
      * @param propertyMappings list of custom property mappings
      * @return List of [CodeBlock]s representing constructor arguments (e.g., `id = source.id`)
      */
@@ -48,11 +50,13 @@ internal object ParameterHelper {
         logger: KSPLogger,
         sourceClass: KSClassDeclaration,
         targetClass: KSClassDeclaration,
+        defaultValues: List<DefaultValue> = emptyList(),
         propertyMappings: List<PropertyMapping> = emptyList(),
     ): List<CodeBlock> = buildList {
         val targetConstructor = targetClass.primaryConstructor
         val sourceProperties = sourceClass.getAllProperties()
             .associateBy { property -> property.simpleName.asString() }
+        val defaultValuesByName = defaultValues.associateBy { value -> value.property }
 
         if (targetConstructor == null) {
             logger.error(
@@ -71,20 +75,18 @@ internal object ParameterHelper {
                 return@forEach
             }
 
-            val mapping = propertyMappings.firstOrNull { mapping ->
-                mapping.to == targetParameterName || (mapping.to.isEmpty() && mapping.from == targetParameterName)
-            }
-
+            val mapping =
+                propertyMappings.firstOrNull { mapping -> mapping.to == targetParameterName }
             val sourcePropertyName = mapping?.from ?: targetParameterName
             val sourceProperty = sourceProperties[sourcePropertyName]
-            val defaultValue = mapping?.defaultValue?.takeIf { value -> value.isNotEmpty() }
+            val defaultValue = defaultValuesByName[targetParameterName]
 
             when {
                 sourceProperty != null -> {
                     val conversion = getConversionExpression(
                         sourceType = sourceProperty.type.resolve(),
                         targetType = targetParameter.type.resolve(),
-                        defaultValue = mapping?.defaultValue,
+                        defaultValue = defaultValue,
                     )
 
                     add(
@@ -101,7 +103,7 @@ internal object ParameterHelper {
 
                 defaultValue != null -> {
                     val targetType = targetParameter.type.resolve()
-                    val formattedValue = formatDefaultValue(targetType, defaultValue)
+                    val formattedValue = formatDefaultValue(targetType, defaultValue.value)
 
                     add(buildCodeBlock { add("%L = %L", targetParameterName, formattedValue) })
                 }
@@ -133,7 +135,7 @@ internal object ParameterHelper {
     private fun getConversionExpression(
         sourceType: KSType,
         targetType: KSType,
-        defaultValue: String?,
+        defaultValue: DefaultValue?,
     ): String {
         if (sourceType == targetType) return ""
 
@@ -158,12 +160,12 @@ internal object ParameterHelper {
         // 4. Handle Nullability
         if (sourceType.isMarkedNullable) {
             if (!targetType.isMarkedNullable) {
-                return if (defaultValue.isNullOrEmpty()) {
+                return if (defaultValue == null) {
                     // No default value, use non-null assertion (potentially unsafe)
                     "!!$conversion"
                 } else {
                     // A default value is provided, use Elvis operator
-                    "$conversion ?: ${formatDefaultValue(targetType, defaultValue)}"
+                    "$conversion ?: ${formatDefaultValue(targetType, defaultValue.value)}"
                 }
             } else {
                 if (conversion.isNotEmpty()) {
@@ -186,7 +188,7 @@ internal object ParameterHelper {
     private fun getCollectionConversion(
         sourceType: KSType,
         targetType: KSType,
-        defaultValue: String?,
+        defaultValue: DefaultValue?,
     ): String {
         val sourceDeclaration = sourceType.declaration as? KSClassDeclaration ?: return ""
         val targetDeclaration = targetType.declaration as? KSClassDeclaration ?: return ""

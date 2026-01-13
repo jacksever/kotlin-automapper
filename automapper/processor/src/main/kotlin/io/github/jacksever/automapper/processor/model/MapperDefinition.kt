@@ -17,22 +17,22 @@
 package io.github.jacksever.automapper.processor.model
 
 import com.google.devtools.ksp.symbol.KSClassDeclaration
+import io.github.jacksever.automapper.annotation.DefaultValue
 import io.github.jacksever.automapper.annotation.PropertyMapping
 
 /**
- * Represents a defined mapping between two classes
+ * A data class that encapsulates all the necessary information for generating a single mapper
  *
- * This data class holds the metadata required to generate a mapper function,
- * extracted from the `@AutoMapper` annotation and the function signature
- *
- * @property source source class declaration (input type)
- * @property target target class declaration (output/return type)
- * @property reversible flag indicating whether a reverse mapping (Target -> Source) should also be generated
- * @property propertyMappings list of [PropertyMapping] rules for this specific mapping
+ * @property source source [KSClassDeclaration]
+ * @property target target [KSClassDeclaration]
+ * @property reversible whether a reverse mapping should also be generated
+ * @property defaultValues list of [DefaultValue] annotations for providing default values
+ * @property propertyMappings list of [PropertyMapping] annotations for renaming properties
  */
 internal data class MapperDefinition(
     val source: KSClassDeclaration,
     val target: KSClassDeclaration,
     val reversible: Boolean,
+    val defaultValues: List<DefaultValue>,
     val propertyMappings: List<PropertyMapping>,
 )

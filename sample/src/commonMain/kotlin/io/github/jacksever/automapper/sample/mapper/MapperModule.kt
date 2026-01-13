@@ -18,6 +18,7 @@ package io.github.jacksever.automapper.sample.mapper
 
 import io.github.jacksever.automapper.annotation.AutoMapper
 import io.github.jacksever.automapper.annotation.AutoMapperModule
+import io.github.jacksever.automapper.annotation.DefaultValue
 import io.github.jacksever.automapper.annotation.PropertyMapping
 import io.github.jacksever.automapper.sample.domain.shape.Shape
 import io.github.jacksever.automapper.sample.domain.status.Status
@@ -46,10 +47,13 @@ internal interface MapperModule {
      * - Renaming and handling nullability simultaneously (`middleName` to `patronymic`).
      */
     @AutoMapper(
+        defaultValues = [
+            DefaultValue(property = "address", value = "Unknown"),
+            DefaultValue(property = "patronymic", value = "N/A"),
+        ],
         propertyMappings = [
             PropertyMapping(from = "id", to = "userId"),
-            PropertyMapping(from = "address", defaultValue = "Unknown"),
-            PropertyMapping(from = "middleName", to = "patronymic", defaultValue = "N/A")
+            PropertyMapping(from = "middleName", to = "patronymic"),
         ]
     )
     fun userMapper(user: User): UserEntity
@@ -62,8 +66,8 @@ internal interface MapperModule {
      */
     @AutoMapper(
         reversible = false,
-        propertyMappings = [
-            PropertyMapping(from = "address", defaultValue = "Unknown"),
+        defaultValues = [
+            DefaultValue(property = "address", value = "Unknown"),
         ]
     )
     fun uiUserMapper(user: User): UiUser
