@@ -18,6 +18,7 @@ package io.github.jacksever.automapper.sample.mapper
 
 import io.github.jacksever.automapper.annotation.AutoMapper
 import io.github.jacksever.automapper.annotation.AutoMapperModule
+import io.github.jacksever.automapper.annotation.DefaultValue
 import io.github.jacksever.automapper.annotation.PropertyMapping
 import io.github.jacksever.automapper.sample.model.ComplexSource
 import io.github.jacksever.automapper.sample.model.ComplexTarget
@@ -60,10 +61,12 @@ internal interface DataClassTestMapperModule {
     fun renameMapper(from: RenameSource): RenameTarget
 
     @AutoMapper(
+        defaultValues = [
+            DefaultValue(property = "content", value = "Empty"),
+        ],
         propertyMappings = [
             PropertyMapping(from = "legacyId", to = "id"),
             PropertyMapping(from = "statusNum", to = "statusText"),
-            PropertyMapping(from = "content", defaultValue = "Empty"),
         ]
     )
     fun complexMapper(from: ComplexSource): ComplexTarget
@@ -77,8 +80,8 @@ internal interface DataClassTestMapperModule {
     fun reversibleMapper(from: ReversibleSource): ReversibleTarget
 
     @AutoMapper(
-        propertyMappings = [
-            PropertyMapping(from = "description", defaultValue = "Default"),
+        defaultValues = [
+            DefaultValue(property = "description", value = "Default"),
         ]
     )
     fun defaultValueMapper(from: DefaultValueSource): DefaultValueTarget
