@@ -15,6 +15,7 @@ Kotlin AutoMapper uses KSP (Kotlin Symbol Processing) to generate extension func
 -   **Visibility Control:** Control the visibility of generated extensions (`public` or `internal`) by setting the visibility of your `@AutoMapperModule` interface.
 -   **Supports `data`, `enum`, and `sealed` classes:** Covers most mapping scenarios.
 -   **Bidirectional & Unidirectional Mapping:** Generate mappings in one or both directions with a simple `reversible` flag.
+-   **Customizable Default Values:** Provide default values for properties that are missing in the source or are `null`.
 -   **Automatic Primitive Conversion:** Handles conversions like `String` to `Int`, `Int` to `Long`, etc., out of the box.
 -   **Collection Mapping:** Automatically handles `List` and `Set` transformations.
 -   **Zero Runtime Dependencies:** The `annotation` library is `SOURCE`-only, so it doesn't get bundled into your final artifact.
@@ -210,23 +211,21 @@ interface MapperModule {
 }
 ```
 
-### Mapping Properties with Different Names and Nullability
+### Customizing Mappings
 
-A common scenario is that property names or nullability do not match between layers. AutoMapper handles this gracefully using the `propertyMappings` parameter.
+AutoMapper provides powerful annotations to handle mismatches in property names or to provide default values when a source property is missing or `null`.
 
-You can provide an array of `@PropertyMapping` annotations to define custom rules:
--   Use `from` and `to` to map properties with different names.
--   Use `defaultValue` to provide a fallback for a `nullable` source property when the target property is not nullable. If the source name is the same as the target, you can omit the `to` parameter.
+#### Renaming Properties with `@PropertyMapping`
 
-#### For Data Classes
+Use the `propertyMappings` array to map properties that have different names between the source and target. Both `from` and `to` parameters are mandatory.
 
 *Models:*
 ```kotlin
-// Domain: nullable address
-data class User(val id: Long, val address: String?)
+// Domain
+data class User(val id: Long, val fullName: String)
 
-// Data Layer: different id name, non-nullable address
-data class UserEntity(val userId: Long, val address: String)
+// Data Layer
+data class UserEntity(val userId: Long, val name: String)
 ```
 
 *Mapping Definition:*
@@ -235,75 +234,51 @@ import io.github.jacksever.automapper.annotation.PropertyMapping
 
 @AutoMapper(
     propertyMappings = [
-        // Renames 'id' to 'userId'
         PropertyMapping(from = "id", to = "userId"),
-        // Provides a default value for 'address' if it's null
-        PropertyMapping(from = "address", defaultValue = "Unknown")
+        PropertyMapping(from = "fullName", to = "name")
     ]
 )
 fun userMapper(user: User): UserEntity
 ```
 
-The generated code will safely use the Elvis operator: `address = address ?: "Unknown"`.
+This also works for renaming `enum` constants or `sealed` class implementations.
 
-#### For Enum Constants
+#### Providing Default Values with `@DefaultValue`
 
-The same principle applies to `enum` constants with different names.
+Use the `defaultValues` array to provide a fallback value for a target property. This is useful in two scenarios:
+1.  The source class does not have a corresponding property.
+2.  The source property is `nullable`, but the target property is not.
+
+The processor will generate code that uses the provided value if the source property is missing or `null`.
 
 *Models:*
 ```kotlin
-// Domain
-enum class Status { PENDING, ... }
+enum class Role { ADMIN, GUEST }
 
-// UI
-enum class UiStatus { PENDING_APPROVAL, ... }
+// Domain: nullable address, no role
+data class User(val id: Long, val address: String?)
+
+// Data Layer: non-nullable address, has a role
+data class UserEntity(val id: Long, val address: String, val role: Role)
 ```
 
 *Mapping Definition:*
 ```kotlin
-import io.github.jacksever.automapper.annotation.PropertyMapping
+import io.github.jacksever.automapper.annotation.DefaultValue
 
 @AutoMapper(
-    propertyMappings = [
-        PropertyMapping(from = "PENDING", to = "PENDING_APPROVAL")
+    defaultValues = [
+        // Provides a value for 'role' (an enum) which is missing in the source
+        DefaultValue(property = "role", value = "Role.GUEST"),
+        // Provides a value for 'address' if it's null
+        DefaultValue(property = "address", value = "Unknown")
     ]
 )
-fun statusMapper(status: Status): UiStatus
+fun userMapper(user: User): UserEntity
 ```
+The generated code will safely use the Elvis operator for `address` (`address = address ?: "Unknown"`) and will assign the enum constant for `role` (`role = Role.GUEST`).
 
-#### For Sealed Classes
-
-The `@PropertyMapping` annotation is powerful enough to handle both subclass names and the properties within them.
-
-*Models:*
-```kotlin
-// Domain
-sealed interface Shape {
-    
-    data class Ellipse(val majorAxis: Double, ...) : Shape
-}
-
-// UI
-sealed interface UiShape {
-    
-    data class Oval(val uiMajorAxis: Double, ...) : UiShape
-}
-```
-
-*Mapping Definition:*
-```kotlin
-import io.github.jacksever.automapper.annotation.PropertyMapping
-
-@AutoMapper(
-    propertyMappings = [
-        // Rule for the subclass name
-        PropertyMapping(from = "Ellipse", to = "Oval"),
-        // Rule for a property inside that subclass
-        PropertyMapping(from = "majorAxis", to = "uiMajorAxis")
-    ]
-)
-fun shapeMapper(shape: Shape): UiShape
-```
+The same approach works for `sealed class` objects. It's best to use the simple class name (e.g., `TaskState.Idle`), as the processor will automatically add the necessary imports.
 
 ## Compatibility
 
