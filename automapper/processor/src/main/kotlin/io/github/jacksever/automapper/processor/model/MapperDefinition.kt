@@ -27,6 +27,7 @@ import io.github.jacksever.automapper.annotation.PropertyMapping
  * @property target target [KSClassDeclaration]
  * @property reversible whether a reverse mapping should also be generated
  * @property defaultValues list of [DefaultValue] annotations for providing default values
+ * @property converters list of [ConverterDefinition] for this specific mapping
  * @property propertyMappings list of [PropertyMapping] annotations for renaming properties
  */
 internal data class MapperDefinition(
@@ -34,5 +35,6 @@ internal data class MapperDefinition(
     val target: KSClassDeclaration,
     val reversible: Boolean,
     val defaultValues: List<DefaultValue>,
+    val converters: List<ConverterDefinition>,
     val propertyMappings: List<PropertyMapping>,
 )

@@ -16,6 +16,9 @@
 
 package io.github.jacksever.automapper.sample.model
 
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
+
 /** Used for simple 1-to-1 mapping test */
 data class SimpleSource(val id: Int, val name: String)
 
@@ -63,3 +66,17 @@ data class ReversibleSource(val originalId: Int, val name: String)
 
 /** Used for testing reversible mapping with property renaming */
 data class ReversibleTarget(val mappedId: Int, val name: String)
+
+/** Used for testing custom type converters with [Instant] */
+@OptIn(ExperimentalTime::class)
+data class InstantConverterSource(val id: Int, val createdAt: Instant)
+
+/** Used for testing custom type converters with [Instant] */
+data class InstantConverterTarget(val id: Int, val createdAt: Long)
+
+/** Used for testing local vs. global converter priority */
+@OptIn(ExperimentalTime::class)
+data class PrioritySource(val id: Int, val createdAt: Instant)
+
+/** Used for testing local vs. global converter priority */
+data class PriorityTarget(val id: Int, val createdAt: Long)

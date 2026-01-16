@@ -20,6 +20,7 @@ import io.github.jacksever.automapper.annotation.AutoMapper
 import io.github.jacksever.automapper.annotation.AutoMapperModule
 import io.github.jacksever.automapper.annotation.DefaultValue
 import io.github.jacksever.automapper.annotation.PropertyMapping
+import io.github.jacksever.automapper.sample.converter.InstantConverter
 import io.github.jacksever.automapper.sample.domain.shape.Shape
 import io.github.jacksever.automapper.sample.domain.status.Status
 import io.github.jacksever.automapper.sample.domain.user.User
@@ -35,16 +36,16 @@ import io.github.jacksever.automapper.sample.ui.user.UiUser
  *
  * The `internal` visibility of this interface makes the generated extensions `internal` as well
  */
-@AutoMapperModule
+@AutoMapperModule(converters = [InstantConverter::class])
 internal interface MapperModule {
 
     /**
      * The processor will generate `User.asUserEntity()` and `UserEntity.asUser()` extensions
      *
      * This demonstrates a complex mapping with multiple rules:
-     * - Renaming a property (`id` to `userId`).
-     * - Handling nullability with a default value (`address`).
-     * - Renaming and handling nullability simultaneously (`middleName` to `patronymic`).
+     * - Renaming a property (`id` to `userId`)
+     * - Handling nullability with a default value (`address`)
+     * - Renaming and handling nullability simultaneously (`middleName` to `patronymic`)
      */
     @AutoMapper(
         defaultValues = [
@@ -103,7 +104,7 @@ internal interface MapperModule {
     @AutoMapper(
         reversible = false,
         propertyMappings = [
-            PropertyMapping(from = "PENDING", to = "PENDING_APPROVAL")
+            PropertyMapping(from = "PENDING", to = "PENDING_APPROVAL"),
         ]
     )
     fun uiStatusMapper(status: Status): UiStatus

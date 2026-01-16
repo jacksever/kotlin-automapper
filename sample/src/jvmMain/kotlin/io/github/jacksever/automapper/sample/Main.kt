@@ -28,16 +28,25 @@ import io.github.jacksever.automapper.sample.mapper.asUiStatus
 import io.github.jacksever.automapper.sample.mapper.asUiUser
 import io.github.jacksever.automapper.sample.mapper.asUser
 import io.github.jacksever.automapper.sample.mapper.asUserEntity
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 
 /**
  * Main entry point for demonstrating the Kotlin AutoMapper library
  */
+@OptIn(ExperimentalTime::class)
 fun main() {
     val labelWidth = 27
 
     // --- Data Class Mapping ---
     println("\n1. Data Class Mapping (User <-> UserEntity, User -> UiUser):")
-    val domainUser = User(id = 1L, name = "John Doe", age = 30, status = Status.ACTIVE)
+    val domainUser = User(
+        id = 1L,
+        age = 30,
+        name = "John Doe",
+        status = Status.ACTIVE,
+        createdAt = Clock.System.now(),
+    )
     val entityUser = domainUser.asUserEntity()
     val revertedUser = entityUser.asUser()
     val uiUser = domainUser.asUiUser()

@@ -16,21 +16,25 @@
 
 package io.github.jacksever.automapper.annotation
 
-import kotlin.reflect.KClass
-
 /**
- * Marks an interface as a module for AutoMapper definitions
+ * Marks a function as a type converter
  *
- * This annotation serves as the entry point for the AutoMapper processor. It should be applied
- * to an interface containing one or more methods annotated with [AutoMapper]
+ * The function must have exactly one parameter and a non-Unit return type.
+ * These converters are collected by the AutoMapper processor and used to
+ * automatically convert between types when generating mappers
  *
- * The visibility of the generated mapper extensions will match the visibility of this interface.
- * If the interface is `internal`, the generated extensions will be `internal`
+ * Example:
+ * ```
+ * object InstantConverter {
  *
- * @property converters array of classes that contain functions annotated with `@AutoConverter`
+ *     @AutoConverter
+ *     fun fromInstant(value: Instant): Long = Instant.toEpochMilliseconds(value)
+ *
+ *     @AutoConverter
+ *     fun toInstant(value: Long): Instant = Instant.fromEpochMilliseconds(value)
+ * }
+ * ```
  */
-@Target(AnnotationTarget.CLASS)
+@Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.SOURCE)
-annotation class AutoMapperModule(
-    val converters: Array<KClass<*>> = [],
-)
+annotation class AutoConverter

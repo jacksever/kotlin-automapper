@@ -26,6 +26,7 @@ import io.github.jacksever.automapper.sample.entity.status.StatusEntity
  * @property patronymic patronymic of the user (middle name)
  * @property age age of the user
  * @property address address of the user
+ * @property createdAt instant when the user was created
  * @property status status of the user
  */
 data class UserEntity(
@@ -34,5 +35,6 @@ data class UserEntity(
     val patronymic: String,
     val age: Int,
     val address: String,
+    val createdAt: Long,
     val status: StatusEntity,
 )

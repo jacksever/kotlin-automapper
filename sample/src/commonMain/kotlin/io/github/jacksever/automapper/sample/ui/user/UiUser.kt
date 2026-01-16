@@ -16,15 +16,21 @@
 
 package io.github.jacksever.automapper.sample.ui.user
 
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
+
 /**
  * Represents a User in the UI layer
  *
  * @property name name of the user
  * @property age age of the user
  * @property address address of the user
+ * @property createdAt instant when the user was created
  */
+@OptIn(ExperimentalTime::class)
 data class UiUser(
     val name: String,
     val age: Int,
     val address: String,
+    val createdAt: Instant,
 )

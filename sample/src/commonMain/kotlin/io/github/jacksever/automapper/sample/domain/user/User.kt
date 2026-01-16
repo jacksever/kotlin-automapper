@@ -17,6 +17,8 @@
 package io.github.jacksever.automapper.sample.domain.user
 
 import io.github.jacksever.automapper.sample.domain.status.Status
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 /**
  * Represents a User in the domain layer
@@ -26,13 +28,16 @@ import io.github.jacksever.automapper.sample.domain.status.Status
  * @property age age of the user
  * @property status status of the user
  * @property address address of the user
+ * @property createdAt instant when the user was created
  * @property middleName optional middle name of the user
  */
+@OptIn(ExperimentalTime::class)
 data class User(
     val id: Long,
     val name: String,
     val age: Int,
     val status: Status,
+    val createdAt: Instant,
     val address: String? = null,
     val middleName: String? = null,
 )
