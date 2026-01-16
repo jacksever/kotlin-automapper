@@ -22,10 +22,12 @@ import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSType
 import com.google.devtools.ksp.symbol.Modifier
 import com.squareup.kotlinpoet.CodeBlock
+import com.squareup.kotlinpoet.MemberName
 import com.squareup.kotlinpoet.buildCodeBlock
 import com.squareup.kotlinpoet.ksp.toClassName
 import io.github.jacksever.automapper.annotation.DefaultValue
 import io.github.jacksever.automapper.annotation.PropertyMapping
+import io.github.jacksever.automapper.processor.model.ConverterDefinition
 
 /**
  * Helper object for generating constructor parameters and handling type conversions
@@ -43,6 +45,7 @@ internal object ParameterHelper {
      * @param sourceClass source class declaration
      * @param targetClass target class declaration
      * @param defaultValues list of default value mappings
+     * @param converters list of custom converter functions available for this mapping
      * @param propertyMappings list of custom property mappings
      * @return List of [CodeBlock]s representing constructor arguments (e.g., `id = source.id`)
      */
@@ -51,6 +54,7 @@ internal object ParameterHelper {
         sourceClass: KSClassDeclaration,
         targetClass: KSClassDeclaration,
         defaultValues: List<DefaultValue> = emptyList(),
+        converters: List<ConverterDefinition> = emptyList(),
         propertyMappings: List<PropertyMapping> = emptyList(),
     ): List<CodeBlock> = buildList {
         val targetConstructor = targetClass.primaryConstructor
@@ -77,28 +81,49 @@ internal object ParameterHelper {
 
             val mapping =
                 propertyMappings.firstOrNull { mapping -> mapping.to == targetParameterName }
-            val sourcePropertyName = mapping?.from ?: targetParameterName
-            val sourceProperty = sourceProperties[sourcePropertyName]
+            val sourceParameterName = mapping?.from ?: targetParameterName
+            val sourceProperty = sourceProperties[sourceParameterName]
             val defaultValue = defaultValuesByName[targetParameterName]
 
             when {
                 sourceProperty != null -> {
-                    val conversion = getConversionExpression(
-                        sourceType = sourceProperty.type.resolve(),
-                        targetType = targetParameter.type.resolve(),
-                        defaultValue = defaultValue,
+                    val sourceType = sourceProperty.type.resolve()
+                    val targetType = targetParameter.type.resolve()
+                    val customConverter = findConverter(
+                        to = targetType,
+                        from = sourceType,
+                        converters = converters,
                     )
 
-                    add(
-                        buildCodeBlock {
-                            add(
-                                "%L = %L%L",
-                                targetParameterName,
-                                sourceProperty.simpleName.asString(),
-                                conversion
-                            )
-                        }
-                    )
+                    if (customConverter != null) {
+                        val converterBlock = buildConverterAssignment(
+                            sourceType = sourceType,
+                            targetType = targetType,
+                            converter = customConverter,
+                            defaultValue = defaultValue,
+                            sourceParameterName = sourceParameterName,
+                            targetParameterName = targetParameterName,
+                        )
+
+                        add(converterBlock)
+                    } else {
+                        val conversion = getConversionExpression(
+                            sourceType = sourceType,
+                            targetType = targetType,
+                            defaultValue = defaultValue,
+                        )
+
+                        add(
+                            buildCodeBlock {
+                                add(
+                                    "%L = %L%L",
+                                    targetParameterName,
+                                    sourceParameterName,
+                                    conversion
+                                )
+                            }
+                        )
+                    }
                 }
 
                 defaultValue != null -> {
@@ -130,18 +155,74 @@ internal object ParameterHelper {
     }
 
     /**
+     * Builds a [CodeBlock] for a custom converter assignment statement
+     *
+     * This function generates the necessary code to call a custom converter and assign it
+     * to the target property. It handles nullability of the source and target types,
+     * and applies a default value if provided
+     */
+    private fun buildConverterAssignment(
+        sourceType: KSType,
+        targetType: KSType,
+        sourceParameterName: String,
+        targetParameterName: String,
+        defaultValue: DefaultValue?,
+        converter: ConverterDefinition,
+    ): CodeBlock {
+        val function = converter.function
+        val member = if (function.parentDeclaration is KSClassDeclaration) {
+            MemberName(
+                simpleName = function.simpleName.asString(),
+                enclosingClassName = (function.parentDeclaration as KSClassDeclaration).toClassName(),
+            )
+        } else {
+            MemberName(
+                simpleName = function.simpleName.asString(),
+                packageName = function.packageName.asString(),
+            )
+        }
+
+        return if (sourceType.isMarkedNullable) {
+            when {
+                !targetType.isMarkedNullable && defaultValue != null -> buildCodeBlock {
+                    add(
+                        "%L = %L?.let(%M) ?: %L",
+                        targetParameterName,
+                        sourceParameterName,
+                        member,
+                        formatDefaultValue(targetType, defaultValue.value)
+                    )
+                }
+
+                !targetType.isMarkedNullable -> buildCodeBlock {
+                    add("%L = %M(%L!!)", targetParameterName, member, sourceParameterName)
+                }
+
+                else -> buildCodeBlock {
+                    add("%L = %L?.let(%M)", targetParameterName, sourceParameterName, member)
+                }
+            }
+        } else {
+            buildCodeBlock {
+                add("%L = %M(%L)", targetParameterName, member, sourceParameterName)
+            }
+        }
+    }
+
+    /**
      * Determines the conversion expression needed to assign [sourceType] to [targetType]
      */
     private fun getConversionExpression(
         sourceType: KSType,
         targetType: KSType,
         defaultValue: DefaultValue?,
-    ): String {
-        if (sourceType == targetType) return ""
+    ): CodeBlock {
+        // 0. Exact match
+        if (sourceType == targetType) return CodeBlock.of("")
 
         // 1. Try Primitive Conversion
         var conversion =
-            invokePrimitiveDeclaration(sourceType = sourceType, targetType = targetType)
+            getPrimitiveConversionExpression(sourceType = sourceType, targetType = targetType)
 
         // 2. Try Collection Conversion
         if (conversion.isEmpty()) {
@@ -162,19 +243,36 @@ internal object ParameterHelper {
             if (!targetType.isMarkedNullable) {
                 return if (defaultValue == null) {
                     // No default value, use non-null assertion (potentially unsafe)
-                    "!!$conversion"
+                    buildCodeBlock { add("!!%L", conversion) }
                 } else {
                     // A default value is provided, use Elvis operator
-                    "$conversion ?: ${formatDefaultValue(targetType, defaultValue.value)}"
+                    buildCodeBlock {
+                        add(
+                            "%L ?: %L",
+                            conversion,
+                            formatDefaultValue(targetType, defaultValue.value)
+                        )
+                    }
                 }
             } else {
                 if (conversion.isNotEmpty()) {
-                    return "?$conversion"
+                    return buildCodeBlock { add("?%L", conversion) }
                 }
             }
         }
 
         return conversion
+    }
+
+    /**
+     * Finds a custom converter function for the given [from] and [to] types
+     */
+    private fun findConverter(
+        from: KSType,
+        to: KSType,
+        converters: List<ConverterDefinition>
+    ): ConverterDefinition? = converters.find { converter ->
+        converter.from.makeNotNullable() == from.makeNotNullable() && converter.to.makeNotNullable() == to.makeNotNullable()
     }
 
     /**
@@ -189,9 +287,11 @@ internal object ParameterHelper {
         sourceType: KSType,
         targetType: KSType,
         defaultValue: DefaultValue?,
-    ): String {
-        val sourceDeclaration = sourceType.declaration as? KSClassDeclaration ?: return ""
-        val targetDeclaration = targetType.declaration as? KSClassDeclaration ?: return ""
+    ): CodeBlock {
+        val sourceDeclaration =
+            sourceType.declaration as? KSClassDeclaration ?: return CodeBlock.of("")
+        val targetDeclaration =
+            targetType.declaration as? KSClassDeclaration ?: return CodeBlock.of("")
 
         val isSourceList = sourceDeclaration.isList()
         val isSourceSet = sourceDeclaration.isSet()
@@ -212,16 +312,17 @@ internal object ParameterHelper {
 
                 // If elements need conversion OR container type changes (e.g. Set -> List)
                 if (innerConversion.isNotEmpty() || (isSourceSet && isTargetList) || (isSourceList && isTargetSet)) {
-                    var transformation = ".map { value -> value$innerConversion }"
-                    if (isTargetSet) {
-                        transformation += ".toSet()"
+                    return buildCodeBlock {
+                        add(".map { value -> value%L }", innerConversion)
+                        if (isTargetSet) {
+                            add(".toSet()");
+                        }
                     }
-                    return transformation
                 }
             }
         }
 
-        return ""
+        return CodeBlock.of("")
     }
 
     /**
@@ -234,7 +335,7 @@ internal object ParameterHelper {
      * @param targetType type of the target property
      * @return conversion string (e.g. ".asTarget()") or empty string
      */
-    private fun getObjectConversion(sourceType: KSType, targetType: KSType): String {
+    private fun getObjectConversion(sourceType: KSType, targetType: KSType): CodeBlock {
         val sourceDeclaration = sourceType.declaration
         val targetDeclaration = targetType.declaration
 
@@ -243,39 +344,44 @@ internal object ParameterHelper {
             val targetPkg = targetDeclaration.packageName.asString()
 
             if (!sourcePkg.startsWith(prefix = "kotlin") && !targetPkg.startsWith(prefix = "kotlin")) {
-                return ".as${targetDeclaration.simpleName.asString()}()"
+                return CodeBlock.of(".as${targetDeclaration.simpleName.asString()}()")
             }
         }
 
-        return ""
+        return CodeBlock.of("")
     }
 
     /**
-     * Generates conversion calls for standard primitive types and Strings
+     * Generates a conversion expression for standard primitive types and Strings
+     *
+     * For example, it might return a [CodeBlock] containing ".toInt()"
      */
-    private fun invokePrimitiveDeclaration(
+    private fun getPrimitiveConversionExpression(
         sourceType: KSType,
         targetType: KSType,
-    ): String {
+    ): CodeBlock {
         val sourceTypeName = sourceType.declaration.simpleName.asString()
         val targetTypeName = targetType.declaration.simpleName.asString()
 
-        return when (sourceTypeName) {
-            "String" if targetTypeName == "Long" -> ".toLong()"
-            "String" if targetTypeName == "Int" -> ".toInt()"
-            "String" if targetTypeName == "Double" -> ".toDouble()"
-            "String" if targetTypeName == "Float" -> ".toFloat()"
-            "String" if targetTypeName == "Boolean" -> ".toBoolean()"
-            "Int" if targetTypeName == "Long" -> ".toLong()"
-            "Long" if targetTypeName == "Int" -> ".toInt()"
-            "Double" if targetTypeName == "Float" -> ".toFloat()"
-            "Float" if targetTypeName == "Double" -> ".toDouble()"
-            "Long" if targetTypeName == "String" -> ".toString()"
-            "Int" if targetTypeName == "String" -> ".toString()"
-            "Double" if targetTypeName == "String" -> ".toString()"
-            "Boolean" if targetTypeName == "String" -> ".toString()"
+        val conversion = when (sourceTypeName) {
+            "String" -> when (targetTypeName) {
+                "Long" -> ".toLong()"
+                "Int" -> ".toInt()"
+                "Double" -> ".toDouble()"
+                "Float" -> ".toFloat()"
+                "Boolean" -> ".toBoolean()"
+                else -> ""
+            }
+
+            "Int" -> if (targetTypeName == "Long") ".toLong()" else ".toString()"
+            "Long" -> if (targetTypeName == "Int") ".toInt()" else ".toString()"
+            "Double" -> if (targetTypeName == "Float") ".toFloat()" else ".toString()"
+            "Float" -> if (targetTypeName == "Double") ".toDouble()" else ".toString()"
+            "Boolean" -> if (targetTypeName == "String") ".toString()" else ""
             else -> ""
         }
+
+        return CodeBlock.of(conversion)
     }
 
     /**

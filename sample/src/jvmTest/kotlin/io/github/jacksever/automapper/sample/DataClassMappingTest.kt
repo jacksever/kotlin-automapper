@@ -18,7 +18,9 @@ package io.github.jacksever.automapper.sample
 
 import io.github.jacksever.automapper.sample.mapper.asComplexTarget
 import io.github.jacksever.automapper.sample.mapper.asDefaultValueTarget
+import io.github.jacksever.automapper.sample.mapper.asInstantConverterTarget
 import io.github.jacksever.automapper.sample.mapper.asNullabilityTarget
+import io.github.jacksever.automapper.sample.mapper.asPriorityTarget
 import io.github.jacksever.automapper.sample.mapper.asRenameTarget
 import io.github.jacksever.automapper.sample.mapper.asReversibleSource
 import io.github.jacksever.automapper.sample.mapper.asReversibleTarget
@@ -27,7 +29,9 @@ import io.github.jacksever.automapper.sample.mapper.asTypeConversionTarget
 import io.github.jacksever.automapper.sample.mapper.asUnsafeTarget
 import io.github.jacksever.automapper.sample.model.ComplexSource
 import io.github.jacksever.automapper.sample.model.DefaultValueSource
+import io.github.jacksever.automapper.sample.model.InstantConverterSource
 import io.github.jacksever.automapper.sample.model.NullabilitySource
+import io.github.jacksever.automapper.sample.model.PrioritySource
 import io.github.jacksever.automapper.sample.model.RenameSource
 import io.github.jacksever.automapper.sample.model.ReversibleSource
 import io.github.jacksever.automapper.sample.model.SimpleSource
@@ -39,6 +43,8 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 
 @RunWith(value = JUnit4::class)
 class DataClassMappingTest {
@@ -125,6 +131,35 @@ class DataClassMappingTest {
         assertEquals(expected = 42, actual = target.id)
         assertEquals(expected = "100", actual = target.count)
         assertEquals(expected = 3.14, actual = target.value, absoluteTolerance = 0.001)
+    }
+
+    @Test
+    @OptIn(ExperimentalTime::class)
+    fun `test custom instant converter`() {
+        // Given
+        val now = Clock.System.now()
+        val source = InstantConverterSource(id = 1, createdAt = now)
+
+        // When
+        val target = source.asInstantConverterTarget()
+
+        // Then
+        assertEquals(expected = source.id, actual = target.id)
+        assertEquals(expected = now.toEpochMilliseconds(), actual = target.createdAt)
+    }
+
+    @Test
+    @OptIn(ExperimentalTime::class)
+    fun `test local converter overrides global`() {
+        // Given
+        val now = Clock.System.now()
+        val source = PrioritySource(id = 1, createdAt = now)
+
+        // When
+        val target = source.asPriorityTarget()
+
+        // Then
+        assertEquals(expected = 999L, actual = target.createdAt)
     }
 
     @Test

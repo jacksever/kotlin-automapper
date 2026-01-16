@@ -20,12 +20,19 @@ import io.github.jacksever.automapper.annotation.AutoMapper
 import io.github.jacksever.automapper.annotation.AutoMapperModule
 import io.github.jacksever.automapper.annotation.DefaultValue
 import io.github.jacksever.automapper.annotation.PropertyMapping
+import io.github.jacksever.automapper.sample.converter.GlobalPriorityConverter
+import io.github.jacksever.automapper.sample.converter.InstantConverter
+import io.github.jacksever.automapper.sample.converter.LocalPriorityConverter
 import io.github.jacksever.automapper.sample.model.ComplexSource
 import io.github.jacksever.automapper.sample.model.ComplexTarget
 import io.github.jacksever.automapper.sample.model.DefaultValueSource
 import io.github.jacksever.automapper.sample.model.DefaultValueTarget
+import io.github.jacksever.automapper.sample.model.InstantConverterSource
+import io.github.jacksever.automapper.sample.model.InstantConverterTarget
 import io.github.jacksever.automapper.sample.model.NullabilitySource
 import io.github.jacksever.automapper.sample.model.NullabilityTarget
+import io.github.jacksever.automapper.sample.model.PrioritySource
+import io.github.jacksever.automapper.sample.model.PriorityTarget
 import io.github.jacksever.automapper.sample.model.RenameSource
 import io.github.jacksever.automapper.sample.model.RenameTarget
 import io.github.jacksever.automapper.sample.model.ReversibleSource
@@ -37,7 +44,7 @@ import io.github.jacksever.automapper.sample.model.TypeConversionTarget
 import io.github.jacksever.automapper.sample.model.UnsafeSource
 import io.github.jacksever.automapper.sample.model.UnsafeTarget
 
-@AutoMapperModule
+@AutoMapperModule(converters = [GlobalPriorityConverter::class])
 internal interface DataClassTestMapperModule {
 
     @AutoMapper
@@ -46,11 +53,17 @@ internal interface DataClassTestMapperModule {
     @AutoMapper
     fun unsafeMapper(from: UnsafeSource): UnsafeTarget
 
+    @AutoMapper(converters = [LocalPriorityConverter::class])
+    fun priorityMapper(from: PrioritySource): PriorityTarget
+
     @AutoMapper
     fun nullabilityMapper(from: NullabilitySource): NullabilityTarget
 
     @AutoMapper
     fun typeConversionMapper(from: TypeConversionSource): TypeConversionTarget
+
+    @AutoMapper(converters = [InstantConverter::class])
+    fun customTypeConverterMapper(from: InstantConverterSource): InstantConverterTarget
 
     @AutoMapper(
         propertyMappings = [

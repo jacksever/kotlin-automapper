@@ -24,6 +24,7 @@ import com.squareup.kotlinpoet.ksp.toClassName
 import io.github.jacksever.automapper.annotation.DefaultValue
 import io.github.jacksever.automapper.annotation.PropertyMapping
 import io.github.jacksever.automapper.processor.helper.ParameterHelper.buildConstructorParameters
+import io.github.jacksever.automapper.processor.model.ConverterDefinition
 
 /**
  * Strategy for generating mapping code for data classes
@@ -34,6 +35,7 @@ import io.github.jacksever.automapper.processor.helper.ParameterHelper.buildCons
 internal class DataMapperBuilder(
     private val logger: KSPLogger,
     private val defaultValues: List<DefaultValue>,
+    private val converters: List<ConverterDefinition>,
     private val propertyMappings: List<PropertyMapping>,
 ) : MapperBuilder {
 
@@ -54,6 +56,7 @@ internal class DataMapperBuilder(
                 logger = logger,
                 targetClass = to,
                 sourceClass = from,
+                converters = converters,
                 defaultValues = defaultValues,
                 propertyMappings = propertyMappings,
             )

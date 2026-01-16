@@ -25,18 +25,22 @@ import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSAnnotation
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFunctionDeclaration
+import com.google.devtools.ksp.symbol.KSType
 import com.google.devtools.ksp.symbol.Modifier
 import com.google.devtools.ksp.validate
 import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
+import com.squareup.kotlinpoet.ksp.toAnnotationSpec
 import com.squareup.kotlinpoet.ksp.toClassName
 import com.squareup.kotlinpoet.ksp.writeTo
+import io.github.jacksever.automapper.annotation.AutoConverter
 import io.github.jacksever.automapper.annotation.AutoMapper
 import io.github.jacksever.automapper.annotation.AutoMapperModule
 import io.github.jacksever.automapper.annotation.DefaultValue
 import io.github.jacksever.automapper.annotation.PropertyMapping
 import io.github.jacksever.automapper.processor.builder.MapperBuilderFactory
+import io.github.jacksever.automapper.processor.model.ConverterDefinition
 import io.github.jacksever.automapper.processor.model.MapperDefinition
 
 /**
@@ -65,6 +69,12 @@ internal class AutoMapperProcessor(
             .forEach { module ->
                 logger.info(message = "AutoMapperProcessor: Processing module '${module.simpleName.asString()}'")
 
+                val globalConverters = module.annotations
+                    .first { annotation ->
+                        annotation.shortName.asString() == AutoMapperModule::class.simpleName
+                    }
+                    .let(block = ::processConverters)
+
                 val mappers = module.declarations
                     .filterIsInstance<KSFunctionDeclaration>()
                     .mapNotNull { function ->
@@ -73,8 +83,13 @@ internal class AutoMapperProcessor(
                                 annotation.shortName.asString() == AutoMapper::class.simpleName
                             }
                             ?.let { annotation ->
+                                val localConverters = processConverters(annotation = annotation)
+                                val allConverters = (localConverters + globalConverters)
+                                    .distinctBy { converter -> "${converter.from}" to "${converter.to}" }
+
                                 processMapperFunction(
                                     function = function,
+                                    converters = allConverters,
                                     mapperAnnotation = annotation,
                                 )
                             }
@@ -101,15 +116,67 @@ internal class AutoMapperProcessor(
     }
 
     /**
+     * Parses a list of converter classes from an `@AutoMapperModule` annotation
+     *
+     * @param annotation annotation instance to process
+     * @return List of [ConverterDefinition]s
+     */
+    private fun processConverters(annotation: KSAnnotation): List<ConverterDefinition> {
+        val converterTypes = (annotation.getArgument(name = "converters") as? List<*>)
+            ?.filterIsInstance<KSType>()
+            ?: return emptyList()
+
+        logger.info(message = "AutoMapperProcessor: Found ${converterTypes.size} converter classes in @AutoMapperModule")
+
+        return converterTypes
+            .map(transform = KSType::declaration)
+            .filterIsInstance<KSClassDeclaration>()
+            .flatMap { converterClass ->
+                converterClass.getAllFunctions().mapNotNull { function ->
+                    if (function.annotations.any { annotation ->
+                            annotation.shortName.asString() == AutoConverter::class.simpleName
+                        }
+                    ) {
+                        val params = function.parameters
+                        val returnType = function.returnType?.resolve()
+
+                        if (params.size != 1 || returnType == null) {
+                            logger.error(
+                                message = "Invalid @AutoConverter function '${function.qualifiedName?.asString()}': must have exactly one parameter and a non-Unit return type",
+                                symbol = function
+                            )
+
+                            return@mapNotNull null
+                        }
+
+                        val fromType = params.first().type.resolve()
+
+                        logger.info(message = "AutoMapperProcessor: Found converter: ${function.qualifiedName?.asString()} from ${fromType.declaration.simpleName.asString()} to ${returnType.declaration.simpleName.asString()}")
+
+                        ConverterDefinition(
+                            from = fromType,
+                            to = returnType,
+                            function = function,
+                        )
+                    } else {
+                        null
+                    }
+                }
+            }
+    }
+
+    /**
      * Parses a single `@AutoMapper` annotated function into a [MapperDefinition]
      *
      * @param function function declaration to process
      * @param mapperAnnotation specific `@AutoMapper` annotation instance
+     * @param converters list of custom converter functions available for this mapping
      * @return Valid [MapperDefinition] or null if validation fails
      */
     private fun processMapperFunction(
         function: KSFunctionDeclaration,
         mapperAnnotation: KSAnnotation,
+        converters: List<ConverterDefinition>,
     ): MapperDefinition? = runCatching {
         val parameters = function.parameters
         val functionName = function.simpleName.asString()
@@ -150,6 +217,7 @@ internal class AutoMapperProcessor(
         MapperDefinition(
             source = sourceClass,
             target = targetClass,
+            converters = converters,
             reversible = reversible,
             defaultValues = defaultValues,
             propertyMappings = propertyMappings,
@@ -186,10 +254,13 @@ internal class AutoMapperProcessor(
                 sourceClass = sourceClass,
             )
 
-            val dependencies = (listOf(
-                module.containingFile,
-                sourceClass.containingFile
-            ) + mappers.map { definition -> definition.target.containingFile })
+            val allConverters = mappers.flatMap(transform = MapperDefinition::converters)
+            val dependencies = buildList {
+                add(element = module.containingFile)
+                add(element = sourceClass.containingFile)
+                addAll(elements = mappers.map { definition -> definition.target.containingFile })
+                addAll(elements = allConverters.map { definition -> definition.function.containingFile })
+            }
                 .filterNotNull()
                 .distinct()
                 .toTypedArray()
@@ -239,6 +310,7 @@ internal class AutoMapperProcessor(
                 }
             )
 
+        val optInAnnotations = collectOptInAnnotations(mappers = mappers)
         val visibilityModifier = KModifier.INTERNAL.takeIf {
             module.modifiers.contains(element = Modifier.INTERNAL)
         } ?: KModifier.PUBLIC
@@ -257,19 +329,21 @@ internal class AutoMapperProcessor(
                             logger = logger,
                             source = definition.source,
                             target = definition.target,
+                            converters = definition.converters,
                             defaultValues = definition.defaultValues,
                             propertyMappings = definition.propertyMappings,
                         ).buildConversion(from = definition.source, to = definition.target)
                     )
 
+            optInAnnotations.forEach { annotation ->
+                sourceToTargetFunBuilder.addAnnotation(annotationSpec = annotation.toAnnotationSpec())
+            }
+
             fileSpecBuilder.addFunction(funSpec = sourceToTargetFunBuilder.build())
 
             if (definition.reversible) {
                 val reversedMappings = definition.propertyMappings.map { property ->
-                    PropertyMapping(
-                        from = property.to,
-                        to = property.from,
-                    )
+                    PropertyMapping(from = property.to, to = property.from)
                 }
 
                 val targetToSourceFunBuilder =
@@ -284,9 +358,14 @@ internal class AutoMapperProcessor(
                                 source = definition.target,
                                 target = definition.source,
                                 defaultValues = emptyList(), // Default values are not reversed
+                                converters = definition.converters,
                                 propertyMappings = reversedMappings,
                             ).buildConversion(from = definition.target, to = definition.source)
                         )
+
+                optInAnnotations.forEach { annotation ->
+                    targetToSourceFunBuilder.addAnnotation(annotationSpec = annotation.toAnnotationSpec())
+                }
 
                 fileSpecBuilder.addFunction(funSpec = targetToSourceFunBuilder.build())
             }
@@ -294,6 +373,22 @@ internal class AutoMapperProcessor(
 
         return fileSpecBuilder.build()
     }
+
+    /**
+     * Collects all opt-in annotations from all mappers
+     */
+    private fun collectOptInAnnotations(mappers: List<MapperDefinition>): List<KSAnnotation> =
+        mappers
+            .flatMap { mapper ->
+                mapper.converters.flatMap { definition ->
+                    definition.function.annotations + (definition.function.parent as? KSClassDeclaration)?.annotations.orEmpty()
+                }
+            }
+            .filter { annotation ->
+                annotation.shortName.asString() == "OptIn" && annotation.annotationType.resolve().declaration.qualifiedName?.asString() == "kotlin.OptIn"
+            }
+            .distinctBy { annotation -> annotation.arguments.joinToString() }
+            .toList()
 
     /**
      * Safely retrieves the value of an annotation argument by its [name]

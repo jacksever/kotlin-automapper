@@ -22,6 +22,7 @@ import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.Modifier
 import io.github.jacksever.automapper.annotation.DefaultValue
 import io.github.jacksever.automapper.annotation.PropertyMapping
+import io.github.jacksever.automapper.processor.model.ConverterDefinition
 
 /**
  * Factory for creating [MapperBuilder] instances based on the source and target types
@@ -42,6 +43,7 @@ internal object MapperBuilderFactory {
      * @param source source class declaration
      * @param target target class declaration
      * @param defaultValues list of default value mappings
+     * @param converters list of custom converter functions available for this mapping
      * @param propertyMappings list of custom property mappings
      * @return Concrete implementation of [MapperBuilder]
      * @throws IllegalStateException if the class types are not supported for mapping
@@ -51,6 +53,7 @@ internal object MapperBuilderFactory {
         source: KSClassDeclaration,
         target: KSClassDeclaration,
         defaultValues: List<DefaultValue>,
+        converters: List<ConverterDefinition>,
         propertyMappings: List<PropertyMapping>,
     ): MapperBuilder {
         val isSourceEnum = source.classKind == ClassKind.ENUM_CLASS
@@ -70,12 +73,14 @@ internal object MapperBuilderFactory {
 
             isSourceSealed && isTargetSealed -> SealedMapperBuilder(
                 logger = logger,
+                converters = converters,
                 defaultValues = defaultValues,
                 propertyMappings = propertyMappings,
             )
 
             isSourceData && isTargetData -> DataMapperBuilder(
                 logger = logger,
+                converters = converters,
                 defaultValues = defaultValues,
                 propertyMappings = propertyMappings,
             )

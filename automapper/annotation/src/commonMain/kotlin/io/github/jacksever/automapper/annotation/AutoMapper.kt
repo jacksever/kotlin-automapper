@@ -16,6 +16,8 @@
 
 package io.github.jacksever.automapper.annotation
 
+import kotlin.reflect.KClass
+
 /**
  * Marks a function within an `@AutoMapperModule` as a mapping definition
  *
@@ -32,17 +34,19 @@ package io.github.jacksever.automapper.annotation
  * ```
  * @AutoMapper(
  *     reversible = true,
+ *     converters = [InstantConverter::class],
  *     defaultValues = [
  *          DefaultValue(property = "role", value = "GUEST")
  *     ],
  *     propertyMappings = [
  *         PropertyMapping(from = "firstName", to = "name")
- *     ]
+ *     ],
  * )
  * fun userMapper(user: User): UserDto
  * ```
  *
  * @property reversible if `true`, the processor will also generate a mapping from target to source
+ * @property converters list of classes containing custom converter functions for this specific mapping
  * @property defaultValues list of [DefaultValue] rules for providing values for unmapped properties
  * @property propertyMappings list of [PropertyMapping] rules for renaming properties or handling nullability
  */
@@ -50,6 +54,7 @@ package io.github.jacksever.automapper.annotation
 @Retention(AnnotationRetention.SOURCE)
 annotation class AutoMapper(
     val reversible: Boolean = true,
+    val converters: Array<KClass<*>> = [],
     val defaultValues: Array<DefaultValue> = [],
     val propertyMappings: Array<PropertyMapping> = [],
 )

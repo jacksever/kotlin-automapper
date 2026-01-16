@@ -26,6 +26,7 @@ import com.squareup.kotlinpoet.ksp.toClassName
 import io.github.jacksever.automapper.annotation.DefaultValue
 import io.github.jacksever.automapper.annotation.PropertyMapping
 import io.github.jacksever.automapper.processor.helper.ParameterHelper.buildConstructorParameters
+import io.github.jacksever.automapper.processor.model.ConverterDefinition
 
 /**
  * Strategy for generating mapping code for Sealed classes and interfaces
@@ -40,6 +41,7 @@ import io.github.jacksever.automapper.processor.helper.ParameterHelper.buildCons
 internal class SealedMapperBuilder(
     private val logger: KSPLogger,
     private val defaultValues: List<DefaultValue>,
+    private val converters: List<ConverterDefinition>,
     private val propertyMappings: List<PropertyMapping>,
 ) : MapperBuilder {
 
@@ -100,6 +102,7 @@ internal class SealedMapperBuilder(
                         logger = logger,
                         sourceClass = source,
                         targetClass = targetSub,
+                        converters = converters,
                         defaultValues = defaultValues,
                         propertyMappings = fieldMappings,
                     )
