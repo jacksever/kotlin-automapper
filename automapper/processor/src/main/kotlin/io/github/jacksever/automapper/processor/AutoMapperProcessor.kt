@@ -31,7 +31,6 @@ import com.google.devtools.ksp.validate
 import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
-import com.squareup.kotlinpoet.ksp.toAnnotationSpec
 import com.squareup.kotlinpoet.ksp.toClassName
 import com.squareup.kotlinpoet.ksp.writeTo
 import io.github.jacksever.automapper.annotation.AutoConverter
@@ -40,6 +39,7 @@ import io.github.jacksever.automapper.annotation.AutoMapperModule
 import io.github.jacksever.automapper.annotation.DefaultValue
 import io.github.jacksever.automapper.annotation.PropertyMapping
 import io.github.jacksever.automapper.processor.builder.MapperBuilderFactory
+import io.github.jacksever.automapper.processor.collector.OptInAnnotationCollector
 import io.github.jacksever.automapper.processor.model.ConverterDefinition
 import io.github.jacksever.automapper.processor.model.MapperDefinition
 
@@ -53,6 +53,7 @@ import io.github.jacksever.automapper.processor.model.MapperDefinition
 internal class AutoMapperProcessor(
     private val logger: KSPLogger,
     private val codeGenerator: CodeGenerator,
+    private val optInAnnotationCollector: OptInAnnotationCollector = OptInAnnotationCollector(),
 ) : SymbolProcessor {
 
     override fun process(resolver: Resolver): List<KSAnnotated> = runCatching {
@@ -310,7 +311,6 @@ internal class AutoMapperProcessor(
                 }
             )
 
-        val optInAnnotations = collectOptInAnnotations(mappers = mappers)
         val visibilityModifier = KModifier.INTERNAL.takeIf {
             module.modifiers.contains(element = Modifier.INTERNAL)
         } ?: KModifier.PUBLIC
@@ -335,8 +335,12 @@ internal class AutoMapperProcessor(
                         ).buildConversion(from = definition.source, to = definition.target)
                     )
 
-            optInAnnotations.forEach { annotation ->
-                sourceToTargetFunBuilder.addAnnotation(annotationSpec = annotation.toAnnotationSpec())
+            optInAnnotationCollector.collect(
+                definition = definition,
+                source = definition.source,
+                target = definition.target,
+            )?.let { annotation ->
+                sourceToTargetFunBuilder.addAnnotation(annotationSpec = annotation)
             }
 
             fileSpecBuilder.addFunction(funSpec = sourceToTargetFunBuilder.build())
@@ -363,8 +367,12 @@ internal class AutoMapperProcessor(
                             ).buildConversion(from = definition.target, to = definition.source)
                         )
 
-                optInAnnotations.forEach { annotation ->
-                    targetToSourceFunBuilder.addAnnotation(annotationSpec = annotation.toAnnotationSpec())
+                optInAnnotationCollector.collect(
+                    definition = definition,
+                    source = definition.target,
+                    target = definition.source,
+                )?.let { annotation ->
+                    targetToSourceFunBuilder.addAnnotation(annotationSpec = annotation)
                 }
 
                 fileSpecBuilder.addFunction(funSpec = targetToSourceFunBuilder.build())
@@ -373,22 +381,6 @@ internal class AutoMapperProcessor(
 
         return fileSpecBuilder.build()
     }
-
-    /**
-     * Collects all opt-in annotations from all mappers
-     */
-    private fun collectOptInAnnotations(mappers: List<MapperDefinition>): List<KSAnnotation> =
-        mappers
-            .flatMap { mapper ->
-                mapper.converters.flatMap { definition ->
-                    definition.function.annotations + (definition.function.parent as? KSClassDeclaration)?.annotations.orEmpty()
-                }
-            }
-            .filter { annotation ->
-                annotation.shortName.asString() == "OptIn" && annotation.annotationType.resolve().declaration.qualifiedName?.asString() == "kotlin.OptIn"
-            }
-            .distinctBy { annotation -> annotation.arguments.joinToString() }
-            .toList()
 
     /**
      * Safely retrieves the value of an annotation argument by its [name]
