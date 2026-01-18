@@ -315,7 +315,7 @@ internal object ParameterHelper {
                     return buildCodeBlock {
                         add(".map { value -> value%L }", innerConversion)
                         if (isTargetSet) {
-                            add(".toSet()");
+                            add(".toSet()")
                         }
                     }
                 }
