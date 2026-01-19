@@ -75,3 +75,25 @@ data class SourceWithMissingState(val id: String)
 
 /** The test will provide a default value for this property during mapping */
 data class TargetWithDefaultState(val id: String, val state: TaskState)
+
+/** Used for a nested sealed class mapping test */
+sealed interface NestedSealedSource {
+
+    data class Child(val value: Int) : NestedSealedSource
+
+    sealed interface Nested : NestedSealedSource {
+
+        data class NestedChild(val name: String) : Nested
+    }
+}
+
+/** Used for a nested sealed class mapping test */
+sealed interface NestedSealedTarget {
+
+    data class Child(val value: Int) : NestedSealedTarget
+
+    sealed interface Nested : NestedSealedTarget {
+
+        data class NestedChild(val name: String) : Nested
+    }
+}

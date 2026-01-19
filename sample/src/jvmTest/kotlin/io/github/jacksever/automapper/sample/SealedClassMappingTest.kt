@@ -17,11 +17,14 @@
 package io.github.jacksever.automapper.sample
 
 import io.github.jacksever.automapper.sample.mapper.asComplexSealedTarget
+import io.github.jacksever.automapper.sample.mapper.asNestedSealedTarget
 import io.github.jacksever.automapper.sample.mapper.asSealedWithDefaultTarget
 import io.github.jacksever.automapper.sample.mapper.asSimpleSealedTarget
 import io.github.jacksever.automapper.sample.mapper.asTargetWithDefaultState
 import io.github.jacksever.automapper.sample.model.ComplexSealedSource
 import io.github.jacksever.automapper.sample.model.ComplexSealedTarget
+import io.github.jacksever.automapper.sample.model.NestedSealedSource
+import io.github.jacksever.automapper.sample.model.NestedSealedTarget
 import io.github.jacksever.automapper.sample.model.SealedWithDefaultSource
 import io.github.jacksever.automapper.sample.model.SealedWithDefaultTarget
 import io.github.jacksever.automapper.sample.model.SimpleSealedSource
@@ -32,6 +35,7 @@ import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 @RunWith(value = JUnit4::class)
@@ -101,5 +105,23 @@ class SealedClassMappingTest {
         assertTrue(actual = targetWithValue is SealedWithDefaultTarget.B)
         assertEquals(expected = 2, actual = targetWithValue.id)
         assertEquals(expected = "Not Default", actual = targetWithValue.description)
+    }
+
+    @Test
+    fun `test nested sealed class mapping`() {
+        // Given
+        val sourceChild = NestedSealedSource.Child(value = 10)
+        val sourceNestedChild = NestedSealedSource.Nested.NestedChild(name = "test")
+
+        // When
+        val targetChild = sourceChild.asNestedSealedTarget()
+        val targetNestedChild = sourceNestedChild.asNestedSealedTarget()
+
+        // Then
+        assertIs<NestedSealedTarget.Child>(value = targetChild)
+        assertEquals(expected = 10, actual = targetChild.value)
+
+        assertIs<NestedSealedTarget.Nested.NestedChild>(value = targetNestedChild)
+        assertEquals(expected = "test", actual = targetNestedChild.name)
     }
 }

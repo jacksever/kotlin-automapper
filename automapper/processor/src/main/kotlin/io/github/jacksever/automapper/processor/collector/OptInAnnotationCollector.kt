@@ -16,6 +16,7 @@
 
 package io.github.jacksever.automapper.processor.collector
 
+import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.symbol.KSAnnotation
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSType
@@ -50,7 +51,9 @@ internal interface OptInAnnotationCollector {
  * It recursively scans sealed hierarchies and combines all found markers into a single, valid
  * `@OptIn` annotation
  */
-internal class OptInAnnotationCollectorImpl : OptInAnnotationCollector {
+internal class OptInAnnotationCollectorImpl(
+    private val logger: KSPLogger,
+) : OptInAnnotationCollector {
 
     override fun collectOptInAnnotations(
         definition: MapperDefinition,
@@ -72,6 +75,8 @@ internal class OptInAnnotationCollectorImpl : OptInAnnotationCollector {
             }
         }
 
+        logger.info(message = "OptInAnnotationCollector: Found ${optInMarkers.size} markers after scanning declarations and properties")
+
         // Prepare fast lookup structures
         val sourceDataClasses = sourceDeclarations
             .filter { declaration -> Modifier.DATA in declaration.modifiers }
@@ -80,8 +85,8 @@ internal class OptInAnnotationCollectorImpl : OptInAnnotationCollector {
         val targetDataClasses = targetDeclarations
             .filter { declaration -> Modifier.DATA in declaration.modifiers }
 
-        val convertersByType = definition.converters.associateBy { definition ->
-            definition.from.makeNotNullable() to definition.to.makeNotNullable()
+        val convertersByType = definition.converters.associateBy { converter ->
+            converter.from.makeNotNullable() to converter.to.makeNotNullable()
         }
 
         // Check converters between corresponding data classes
@@ -108,8 +113,8 @@ internal class OptInAnnotationCollectorImpl : OptInAnnotationCollector {
                 val converter = convertersByType[sourceType to targetType] ?: return@forEach
 
                 collectOptInMarkers(
-                    annotations = converter.function.annotations,
                     out = optInMarkers,
+                    annotations = converter.function.annotations
                 )
 
                 (converter.function.parent as? KSClassDeclaration)?.let { parent ->
@@ -118,7 +123,10 @@ internal class OptInAnnotationCollectorImpl : OptInAnnotationCollector {
             }
         }
 
-        if (optInMarkers.isEmpty()) return null
+        if (optInMarkers.isEmpty()) {
+            logger.info(message = "OptInAnnotationCollector: No markers found. Skipping annotation")
+            return null
+        }
 
         val classNames = optInMarkers
             .map { type -> type.toClassName() }
