@@ -8,17 +8,20 @@ Kotlin AutoMapper uses KSP (Kotlin Symbol Processing) to generate extension func
 
 ## Features
 
--   **Kotlin Multiplatform:** Designed from the ground up to work with KMP, generating code for `JVM`, `iOS`, `JS`, and `Wasm` targets.
--   **Compile-Time Safety:** All mappings are verified at build time.
--   **Reflection-Free:** Blazing-fast performance at runtime.
--   **Multi-Module Support:** Seamlessly map classes across different Gradle modules, perfect for clean architecture setups.
--   **Visibility Control:** Control the visibility of generated extensions (`public` or `internal`) by setting the visibility of your `@AutoMapperModule` interface.
--   **Supports `data`, `enum`, and `sealed` classes:** Covers most mapping scenarios.
--   **Bidirectional & Unidirectional Mapping:** Generate mappings in one or both directions with a simple `reversible` flag.
--   **Customizable Default Values:** Provide default values for properties that are missing in the source or are `null`.
--   **Automatic Primitive Conversion:** Handles conversions like `String` to `Int`, `Int` to `Long`, etc., out of the box.
--   **Collection Mapping:** Automatically handles `List` and `Set` transformations.
--   **Zero Runtime Dependencies:** The `annotation` library is `SOURCE`-only, so it doesn't get bundled into your final artifact.
+-   **Kotlin Multiplatform First:** Works seamlessly across `JVM`, `iOS`, `JS`, `Wasm`, and other Kotlin targets.
+-   **Type-Safe & Compile-Time Verified:** All mappings are generated and validated by KSP at compile time. No reflection, no runtime errors.
+-   **Zero Runtime Dependencies:** The annotation library is `SOURCE`-only and adds no overhead to your production app.
+-   **Broad Class Support:** Out-of-the-box support for `data`, `enum`, and `sealed` classes, including complex nested hierarchies.
+-   **Powerful Mapping Customization:**
+    -   **Property Renaming:** Easily map properties with different names using `@PropertyMapping`.
+    -   **Default Values:** Provide fallback values for missing or `null` properties with `@DefaultValue`.
+-   **Advanced Type Conversion:**
+    -   **Custom Converters:** Define your own conversion logic for complex types (like `Uuid` or `Instant`) using `@AutoConverter`.
+    -   **Automatic Primitive Conversion:** Handles conversions between primitives like `Int`, `Long`, `String` automatically.
+-   **Smart & Safe Generation:**
+    -   **Bidirectional Mapping:** Generate forward and reverse mappings with a single `reversible = true` flag.
+    -   **Visibility Control:** Generated code automatically inherits the visibility (`public` or `internal`) of your `@AutoMapperModule`.
+    -   **`@OptIn` Propagation:** Automatically propagates `@OptIn` annotations from your custom converters to the generated functions, ensuring compile-time safety for experimental APIs.
 
 ## Setup
 
