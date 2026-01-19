@@ -22,6 +22,8 @@ import io.github.jacksever.automapper.annotation.DefaultValue
 import io.github.jacksever.automapper.annotation.PropertyMapping
 import io.github.jacksever.automapper.sample.model.ComplexSealedSource
 import io.github.jacksever.automapper.sample.model.ComplexSealedTarget
+import io.github.jacksever.automapper.sample.model.NestedSealedSource
+import io.github.jacksever.automapper.sample.model.NestedSealedTarget
 import io.github.jacksever.automapper.sample.model.SealedWithDefaultSource
 import io.github.jacksever.automapper.sample.model.SealedWithDefaultTarget
 import io.github.jacksever.automapper.sample.model.SimpleSealedSource
@@ -34,6 +36,9 @@ internal interface SealedClassTestMapperModule {
 
     @AutoMapper
     fun simpleMapper(from: SimpleSealedSource): SimpleSealedTarget
+
+    @AutoMapper
+    fun nestedMapper(source: NestedSealedSource): NestedSealedTarget
 
     @AutoMapper(
         reversible = false,

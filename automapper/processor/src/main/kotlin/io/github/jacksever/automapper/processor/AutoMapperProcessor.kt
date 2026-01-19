@@ -54,8 +54,8 @@ internal class AutoMapperProcessor(
     private val logger: KSPLogger,
     private val codeGenerator: CodeGenerator,
 ) : SymbolProcessor,
-    OptInAnnotationCollector by OptInAnnotationCollectorImpl(),
     ConverterCollector by ConverterCollectorImpl(logger = logger),
+    OptInAnnotationCollector by OptInAnnotationCollectorImpl(logger = logger),
     MapperDefinitionCollector by MapperDefinitionCollectorImpl(logger = logger) {
 
     override fun process(resolver: Resolver): List<KSAnnotated> = runCatching {
@@ -90,7 +90,20 @@ internal class AutoMapperProcessor(
                             ?.let { annotation ->
                                 val localConverters = collectConverters(annotation = annotation)
                                 val allConverters = (localConverters + globalConverters)
-                                    .distinctBy { converter -> "${converter.from}" to "${converter.to}" }
+                                    .groupBy { converter -> "${converter.from}" to "${converter.to}" }
+                                    .mapValues { (types, group) ->
+                                        if (group.size > 1) {
+                                            logger.warn(
+                                                message = "Found multiple converters for ${types.first} -> ${types.second}. Prioritizing the one from @AutoMapper",
+                                                symbol = function
+                                            )
+                                        }
+
+                                        // Local converters are first in the list, so they take priority
+                                        group.first()
+                                    }
+                                    .values
+                                    .toList()
 
                                 collectMapperDefinition(
                                     function = function,
@@ -150,7 +163,7 @@ internal class AutoMapperProcessor(
                 add(element = module.containingFile)
                 add(element = sourceClass.containingFile)
                 addAll(elements = mappers.map { definition -> definition.target.containingFile })
-                addAll(elements = allConverters.map { definition -> definition.function.containingFile })
+                addAll(elements = allConverters.map { converter -> converter.function.containingFile })
             }
                 .filterNotNull()
                 .distinct()

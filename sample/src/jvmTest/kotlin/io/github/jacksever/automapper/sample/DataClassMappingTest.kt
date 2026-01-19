@@ -24,6 +24,8 @@ import io.github.jacksever.automapper.sample.mapper.asPriorityTarget
 import io.github.jacksever.automapper.sample.mapper.asRenameTarget
 import io.github.jacksever.automapper.sample.mapper.asReversibleSource
 import io.github.jacksever.automapper.sample.mapper.asReversibleTarget
+import io.github.jacksever.automapper.sample.mapper.asReversibleWithConverterSource
+import io.github.jacksever.automapper.sample.mapper.asReversibleWithConverterTarget
 import io.github.jacksever.automapper.sample.mapper.asSimpleTarget
 import io.github.jacksever.automapper.sample.mapper.asTypeConversionTarget
 import io.github.jacksever.automapper.sample.mapper.asUnsafeTarget
@@ -34,6 +36,7 @@ import io.github.jacksever.automapper.sample.model.NullabilitySource
 import io.github.jacksever.automapper.sample.model.PrioritySource
 import io.github.jacksever.automapper.sample.model.RenameSource
 import io.github.jacksever.automapper.sample.model.ReversibleSource
+import io.github.jacksever.automapper.sample.model.ReversibleWithConverterSource
 import io.github.jacksever.automapper.sample.model.SimpleSource
 import io.github.jacksever.automapper.sample.model.TypeConversionSource
 import io.github.jacksever.automapper.sample.model.UnsafeSource
@@ -45,6 +48,8 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 @RunWith(value = JUnit4::class)
 class DataClassMappingTest {
@@ -195,5 +200,27 @@ class DataClassMappingTest {
         assertEquals(expected = 99L, actual = target.id) // Type conversion + rename
         assertEquals(expected = "1", actual = target.statusText) // Type conversion + rename
         assertEquals(expected = "Empty", actual = target.content) // Default value
+    }
+
+    @Test
+    @OptIn(ExperimentalUuidApi::class)
+    fun `test reversible mapping with converters`() {
+        // Given
+        val source = ReversibleWithConverterSource(id = 1, uuid = Uuid.random())
+
+        // When: Direct mapping (Uuid -> String)
+        val target = source.asReversibleWithConverterTarget()
+
+        // Then: Direct mapping is correct
+        assertEquals(expected = source.id, actual = target.id)
+        assertEquals(expected = source.uuid.toString(), actual = target.uuid)
+
+        // When: Reverse mapping (String -> uui)
+        val reversedSource = target.asReversibleWithConverterSource()
+
+        // Then: Reverse mapping is correct
+        assertEquals(expected = target.id, actual = reversedSource.id)
+        assertEquals(expected = source.uuid, actual = reversedSource.uuid)
+        assertEquals(expected = target.uuid, actual = reversedSource.uuid.toString())
     }
 }

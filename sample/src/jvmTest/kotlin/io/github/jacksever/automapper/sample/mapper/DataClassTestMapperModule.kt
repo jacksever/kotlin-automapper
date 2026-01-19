@@ -23,6 +23,7 @@ import io.github.jacksever.automapper.annotation.PropertyMapping
 import io.github.jacksever.automapper.sample.converter.GlobalPriorityConverter
 import io.github.jacksever.automapper.sample.converter.InstantConverter
 import io.github.jacksever.automapper.sample.converter.LocalPriorityConverter
+import io.github.jacksever.automapper.sample.converter.UuidConverter
 import io.github.jacksever.automapper.sample.model.ComplexSource
 import io.github.jacksever.automapper.sample.model.ComplexTarget
 import io.github.jacksever.automapper.sample.model.DefaultValueSource
@@ -37,6 +38,8 @@ import io.github.jacksever.automapper.sample.model.RenameSource
 import io.github.jacksever.automapper.sample.model.RenameTarget
 import io.github.jacksever.automapper.sample.model.ReversibleSource
 import io.github.jacksever.automapper.sample.model.ReversibleTarget
+import io.github.jacksever.automapper.sample.model.ReversibleWithConverterSource
+import io.github.jacksever.automapper.sample.model.ReversibleWithConverterTarget
 import io.github.jacksever.automapper.sample.model.SimpleSource
 import io.github.jacksever.automapper.sample.model.SimpleTarget
 import io.github.jacksever.automapper.sample.model.TypeConversionSource
@@ -44,7 +47,7 @@ import io.github.jacksever.automapper.sample.model.TypeConversionTarget
 import io.github.jacksever.automapper.sample.model.UnsafeSource
 import io.github.jacksever.automapper.sample.model.UnsafeTarget
 
-@AutoMapperModule(converters = [GlobalPriorityConverter::class])
+@AutoMapperModule(converters = [GlobalPriorityConverter::class, UuidConverter::class])
 internal interface DataClassTestMapperModule {
 
     @AutoMapper
@@ -64,6 +67,9 @@ internal interface DataClassTestMapperModule {
 
     @AutoMapper(converters = [InstantConverter::class])
     fun customTypeConverterMapper(from: InstantConverterSource): InstantConverterTarget
+
+    @AutoMapper
+    fun reversibleMapper(source: ReversibleWithConverterSource): ReversibleWithConverterTarget
 
     @AutoMapper(
         propertyMappings = [
