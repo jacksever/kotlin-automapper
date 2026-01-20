@@ -11,6 +11,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      pull-requests: write
 
     steps:
       # Checks out the repository code so the workflow can access it
@@ -31,6 +34,13 @@ jobs:
       # Runs the main check task to compile, test, and verify the project
       - name: Run Tests & Quality Checks
         run: ./gradlew check
+
+      # Publishes the test results to the GitHub Checks interface
+      - name: Publish Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: (!cancelled())
+        with:
+          files: '**/build/test-results/**/*.xml'
 
       # Gradle Daemon Cleanup
       - name: Gradle Daemon Cleanup
