@@ -1,0 +1,23 @@
+# This workflow validates the integrity of the Gradle Wrapper files
+
+name: 'Validate Gradle Wrapper'
+
+on:
+  pull_request:
+    paths:
+      - 'gradlew'
+      - 'gradlew.bat'
+      - 'gradle/wrapper/**'
+
+jobs:
+  wrapper-validation:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checks out the repository code so the workflow can access it
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      # Validate the Gradle Distribution SHA-256 checksum
+      - name: Verify Gradle Wrapper
+        uses: gradle/actions/wrapper-validation@v3
