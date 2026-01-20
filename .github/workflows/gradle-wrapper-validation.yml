@@ -20,4 +20,4 @@ jobs:
 
       # Validate the Gradle Distribution SHA-256 checksum
       - name: Verify Gradle Wrapper
-        uses: gradle/actions/wrapper-validation@v3
+        uses: gradle/actions/wrapper-validation@v5
