@@ -41,6 +41,7 @@ jobs:
         if: (!cancelled())
         with:
           files: '**/build/test-results/**/*.xml'
+          check_name: 'Unit Test Results'
 
       # Gradle Daemon Cleanup
       - name: Gradle Daemon Cleanup
