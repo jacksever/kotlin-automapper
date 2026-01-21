@@ -24,13 +24,10 @@ import io.github.jacksever.automapper.sample.model.CollectionSource
 import io.github.jacksever.automapper.sample.model.CollectionTarget
 import io.github.jacksever.automapper.sample.model.ItemSource
 import io.github.jacksever.automapper.sample.model.ItemTarget
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 
-@RunWith(value = JUnit4::class)
 class CollectionMappingTest {
 
     @Test

@@ -15,16 +15,10 @@ com-squareup-kotlinpoet = "2.2.0"
 com-vanniktech-maven-publish = "0.35.0"
 # endregion
 
-# region Testing
-junit = "4.13.2"
-# endregion
-
 [libraries]
 com-squareup-kotlinpoet = { module = "com.squareup:kotlinpoet", version.ref = "com-squareup-kotlinpoet" }
 com-squareup-kotlinpoet-ksp = { module = "com.squareup:kotlinpoet-ksp", version.ref = "com-squareup-kotlinpoet" }
 google-devtools-ksp-processor-api = { module = "com.google.devtools.ksp:symbol-processing-api", version.ref = "com-google-ksp" }
-
-junit = { module = "junit:junit", version.ref = "junit" }
 
 [plugins]
 com-google-ksp = { id = "com.google.devtools.ksp", version.ref = "com-google-ksp" }
