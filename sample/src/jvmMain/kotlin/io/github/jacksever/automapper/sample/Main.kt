@@ -29,12 +29,10 @@ import io.github.jacksever.automapper.sample.mapper.asUiUser
 import io.github.jacksever.automapper.sample.mapper.asUser
 import io.github.jacksever.automapper.sample.mapper.asUserEntity
 import kotlin.time.Clock
-import kotlin.time.ExperimentalTime
 
 /**
  * Main entry point for demonstrating the Kotlin AutoMapper library
  */
-@OptIn(ExperimentalTime::class)
 fun main() {
     val labelWidth = 27
 

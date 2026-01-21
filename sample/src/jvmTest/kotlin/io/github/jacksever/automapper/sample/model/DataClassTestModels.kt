@@ -16,8 +16,6 @@
 
 package io.github.jacksever.automapper.sample.model
 
-import java.util.UUID
-import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -71,14 +69,12 @@ data class ReversibleSource(val originalId: Int, val name: String)
 data class ReversibleTarget(val mappedId: Int, val name: String)
 
 /** Used for testing custom type converters with [Instant] */
-@OptIn(ExperimentalTime::class)
 data class InstantConverterSource(val id: Int, val createdAt: Instant)
 
 /** Used for testing custom type converters with [Instant] */
 data class InstantConverterTarget(val id: Int, val createdAt: Long)
 
 /** Used for testing local vs. global converter priority */
-@OptIn(ExperimentalTime::class)
 data class PrioritySource(val id: Int, val createdAt: Instant)
 
 /** Used for testing local vs. global converter priority */
