@@ -12,7 +12,7 @@ com-squareup-kotlinpoet = "2.2.0"
 # endregion
 
 # region Maven Publishing
-com-vanniktech-maven-publish = "0.35.0"
+com-vanniktech-maven-publish = "0.36.0"
 # endregion
 
 # region Testing
