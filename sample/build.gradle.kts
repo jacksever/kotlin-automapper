@@ -35,10 +35,13 @@ kotlin {
         }
 
         jvmTest.dependencies {
-            implementation(libs.junit)
-            implementation(kotlin("test"))
+            implementation(kotlin("test-junit5"))
         }
     }
+}
+
+tasks.withType<Test>().configureEach {
+    useJUnitPlatform()
 }
 
 dependencies {

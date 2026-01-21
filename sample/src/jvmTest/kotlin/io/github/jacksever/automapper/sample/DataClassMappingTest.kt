@@ -40,8 +40,6 @@ import io.github.jacksever.automapper.sample.model.ReversibleWithConverterSource
 import io.github.jacksever.automapper.sample.model.SimpleSource
 import io.github.jacksever.automapper.sample.model.TypeConversionSource
 import io.github.jacksever.automapper.sample.model.UnsafeSource
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -51,7 +49,6 @@ import kotlin.time.ExperimentalTime
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
-@RunWith(value = JUnit4::class)
 class DataClassMappingTest {
 
     @Test

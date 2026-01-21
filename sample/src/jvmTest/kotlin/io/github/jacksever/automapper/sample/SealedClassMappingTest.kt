@@ -31,14 +31,11 @@ import io.github.jacksever.automapper.sample.model.SimpleSealedSource
 import io.github.jacksever.automapper.sample.model.SimpleSealedTarget
 import io.github.jacksever.automapper.sample.model.SourceWithMissingState
 import io.github.jacksever.automapper.sample.model.TaskState
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
-@RunWith(value = JUnit4::class)
 class SealedClassMappingTest {
 
     @Test

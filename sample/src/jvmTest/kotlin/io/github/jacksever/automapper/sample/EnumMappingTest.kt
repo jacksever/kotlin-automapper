@@ -27,13 +27,10 @@ import io.github.jacksever.automapper.sample.model.RenameEnumTarget
 import io.github.jacksever.automapper.sample.model.SimpleEnumSource
 import io.github.jacksever.automapper.sample.model.SimpleEnumTarget
 import io.github.jacksever.automapper.sample.model.UnmappedEnumSource
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
-@RunWith(value = JUnit4::class)
 class EnumMappingTest {
 
     @Test
