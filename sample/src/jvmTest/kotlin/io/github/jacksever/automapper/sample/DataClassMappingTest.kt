@@ -136,7 +136,6 @@ class DataClassMappingTest {
     }
 
     @Test
-    @OptIn(ExperimentalTime::class)
     fun `test custom instant converter`() {
         // Given
         val now = Clock.System.now()
@@ -151,7 +150,6 @@ class DataClassMappingTest {
     }
 
     @Test
-    @OptIn(ExperimentalTime::class)
     fun `test local converter overrides global`() {
         // Given
         val now = Clock.System.now()

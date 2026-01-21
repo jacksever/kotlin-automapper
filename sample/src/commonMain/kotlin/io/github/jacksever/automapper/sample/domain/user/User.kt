@@ -17,7 +17,6 @@
 package io.github.jacksever.automapper.sample.domain.user
 
 import io.github.jacksever.automapper.sample.domain.status.Status
-import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
 /**
@@ -31,7 +30,6 @@ import kotlin.time.Instant
  * @property createdAt instant when the user was created
  * @property middleName optional middle name of the user
  */
-@OptIn(ExperimentalTime::class)
 data class User(
     val id: Long,
     val name: String,

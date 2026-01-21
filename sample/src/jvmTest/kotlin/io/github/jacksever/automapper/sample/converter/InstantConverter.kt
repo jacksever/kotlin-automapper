@@ -17,10 +17,8 @@
 package io.github.jacksever.automapper.sample.converter
 
 import io.github.jacksever.automapper.annotation.AutoConverter
-import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
-@OptIn(ExperimentalTime::class)
 internal object InstantConverter {
 
     @AutoConverter
@@ -30,7 +28,6 @@ internal object InstantConverter {
     fun toInstant(value: Long): Instant = Instant.fromEpochMilliseconds(epochMilliseconds = value)
 }
 
-@OptIn(ExperimentalTime::class)
 internal object GlobalPriorityConverter {
 
     @AutoConverter
@@ -40,7 +37,6 @@ internal object GlobalPriorityConverter {
     fun toInstant(value: Long): Instant = Instant.fromEpochMilliseconds(epochMilliseconds = 111L)
 }
 
-@OptIn(ExperimentalTime::class)
 internal object LocalPriorityConverter {
 
     @AutoConverter
