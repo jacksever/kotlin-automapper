@@ -16,6 +16,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+
     steps:
       # Checks out the 'main' branch to get the latest changes
       - name: Checkout main branch
