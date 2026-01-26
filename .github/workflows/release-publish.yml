@@ -43,6 +43,11 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
+          
+      # Sets up the specified Python version
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.x'
 
       # Sets up the Gradle for the project
       - name: Setup Gradle
@@ -59,6 +64,13 @@ jobs:
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_IN_MEMORY_KEY }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.SIGNING_KEY_ID }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
+          
+      # Deploys the documentation to GitHub Pages
+      - name: Deploy Documentation to GitHub Pages
+        run: |
+          git config user.name 'github-actions[bot]' && git config user.email 'github-actions[bot]@users.noreply.github.com'
+          pip install --upgrade pip && pip install mkdocs-material mkdocs-material-extensions mkdocs-minify-plugin
+          mkdocs gh-deploy --force
 
       # Creates a GitHub Release associated with the new tag
       - name: Create GitHub Release
