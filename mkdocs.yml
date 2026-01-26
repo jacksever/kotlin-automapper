@@ -1,0 +1,67 @@
+site_name: 'Kotlin AutoMapper'
+site_description: 'Boilerplate-free, type-safe object mapping for Kotlin Multiplatform. A KSP annotation processor that automatically generates conversion code for data, enum, and sealed classes'
+site_author: 'Alexander Gorodnikov'
+site_url: 'https://jacksever.github.io/kotlin-automapper/'
+remote_branch: gh-pages
+
+repo_name: 'jacksever/kotlin-automapper'
+repo_url: 'https://github.com/jacksever/kotlin-automapper'
+
+copyright: 'Copyright &copy; 2026 Alexander Gorodnikov'
+
+theme:
+  name: 'material'
+  language: 'en'
+  palette:
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: white
+      accent: white
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: black
+      accent: black
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  font:
+    text: 'Roboto'
+    code: 'Roboto Mono'
+
+extra:
+  social:
+    - icon: 'fontawesome/brands/github'
+      link: 'https://github.com/jacksever/kotlin-automapper'
+
+nav:
+  - 'Overview': 'index.md'
+  - 'Features': 'features.md'
+  - 'Setup': 'setup.md'
+  - 'How to Use': 'how-to-use.md'
+  - 'Advanced Usage':
+    - 'Unidirectional Mapping': 'advanced/unidirectional-mapping.md'
+    - 'Customizing Mappings': 'advanced/customizing-mappings.md'
+    - 'Custom Type Conversion': 'advanced/custom-type-conversion.md'
+
+markdown_extensions:
+  - admonition
+  - footnotes
+  - toc:
+      permalink: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+
+plugins:
+  - search
+  - minify:
+      minify_html: true
