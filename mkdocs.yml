@@ -60,6 +60,7 @@ nav:
       - 'Unidirectional Mapping': 'advanced/unidirectional-mapping.md'
       - 'Customizing Mappings': 'advanced/customizing-mappings.md'
       - 'Custom Type Conversion': 'advanced/custom-type-conversion.md'
+  - 'Contributing': 'contributing.md'
   - 'Code of Conduct': 'code_of_conduct.md'
 
 # Extensions
@@ -77,6 +78,7 @@ markdown_extensions:
 # Plugins
 plugins:
   - search
+  - include-markdown
   - minify:
       minify_html: true
 

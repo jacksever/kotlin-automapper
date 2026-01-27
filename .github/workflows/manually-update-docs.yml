@@ -1,0 +1,27 @@
+# This workflow allows for the manual update and deployment of the documentation to GitHub Pages
+
+name: 'Manually Update Docs'
+
+on:
+  # Allows this workflow to be triggered manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      # Checks out the repository code so the workflow can access it
+      - uses: actions/checkout@v6
+      
+      # Sets up the specified Python version
+      - uses: actions/setup-python@v6
+        with:
+          python-version: 3.x
+
+      # Deploys the documentation to GitHub Pages
+      - name: Deploy Documentation to GitHub Pages
+        run: |
+          git config user.name 'github-actions[bot]' && git config user.email 'github-actions[bot]@users.noreply.github.com'
+          pip install --upgrade pip && pip install mkdocs-material mkdocs-material-extensions mkdocs-minify-plugin mkdocs-include-markdown-plugin
+          mkdocs gh-deploy --force
