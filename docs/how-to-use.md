@@ -1,5 +1,3 @@
-## How to Use
-
 Using the library is a simple three-step process:
 
 ### Step 1: Define Your Models
