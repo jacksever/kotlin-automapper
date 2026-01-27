@@ -1,5 +1,3 @@
-## Setup
-
 Ensure you have the `ksp` plugin applied in your module's `build.gradle.kts` file.
 
 ### For a Kotlin Multiplatform Project

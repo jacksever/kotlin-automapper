@@ -1,5 +1,3 @@
-## Features
-
 -   **Kotlin Multiplatform First:** Works seamlessly across `JVM`, `iOS`, `JS`, `Wasm`, and other Kotlin targets.
 -   **Type-Safe & Compile-Time Verified:** All mappings are generated and validated by KSP at compile time. No reflection, no runtime errors.
 -   **Zero Runtime Dependencies:** The annotation library is `SOURCE`-only and adds no overhead to your production app.
