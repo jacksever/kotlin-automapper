@@ -1,22 +1,29 @@
+# Project information
 site_name: 'Kotlin AutoMapper'
 site_description: 'Boilerplate-free, type-safe object mapping for Kotlin Multiplatform. A KSP annotation processor that automatically generates conversion code for data, enum, and sealed classes'
 site_author: 'Alexander Gorodnikov'
 site_url: 'https://jacksever.github.io/kotlin-automapper/'
 remote_branch: gh-pages
 
+# Repository
 repo_name: 'jacksever/kotlin-automapper'
 repo_url: 'https://github.com/jacksever/kotlin-automapper'
 
+# Copyright
 copyright: 'Copyright &copy; 2026 Alexander Gorodnikov'
 
+# Configuration
 theme:
   name: 'material'
   language: 'en'
   palette:
+    # Palette toggle for automatic mode
     - media: "(prefers-color-scheme)"
       toggle:
         icon: material/brightness-auto
         name: Switch to light mode
+
+    # Palette toggle for light mode
     - media: "(prefers-color-scheme: light)"
       scheme: default
       primary: white
@@ -24,6 +31,8 @@ theme:
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
+
+    # Palette toggle for dark mode
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
       primary: black
@@ -35,21 +44,25 @@ theme:
     text: 'Roboto'
     code: 'Roboto Mono'
 
+# Customization
 extra:
   social:
     - icon: 'fontawesome/brands/github'
       link: 'https://github.com/jacksever/kotlin-automapper'
 
+# Navigation
 nav:
   - 'Overview': 'index.md'
   - 'Features': 'features.md'
   - 'Setup': 'setup.md'
   - 'How to Use': 'how-to-use.md'
   - 'Advanced Usage':
-    - 'Unidirectional Mapping': 'advanced/unidirectional-mapping.md'
-    - 'Customizing Mappings': 'advanced/customizing-mappings.md'
-    - 'Custom Type Conversion': 'advanced/custom-type-conversion.md'
+      - 'Unidirectional Mapping': 'advanced/unidirectional-mapping.md'
+      - 'Customizing Mappings': 'advanced/customizing-mappings.md'
+      - 'Custom Type Conversion': 'advanced/custom-type-conversion.md'
+  - 'Code of Conduct': 'code_of_conduct.md'
 
+# Extensions
 markdown_extensions:
   - admonition
   - footnotes
@@ -61,7 +74,15 @@ markdown_extensions:
   - pymdownx.snippets
   - pymdownx.superfences
 
+# Plugins
 plugins:
   - search
   - minify:
       minify_html: true
+
+# Validations
+validation:
+  links:
+    absolute_links: ignore
+  nav:
+    omitted_files: ignore
