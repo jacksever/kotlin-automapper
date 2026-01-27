@@ -78,7 +78,6 @@ markdown_extensions:
 # Plugins
 plugins:
   - search
-  - include-markdown
   - minify:
       minify_html: true
 

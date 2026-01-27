@@ -23,5 +23,5 @@ jobs:
       - name: Deploy Documentation to GitHub Pages
         run: |
           git config user.name 'github-actions[bot]' && git config user.email 'github-actions[bot]@users.noreply.github.com'
-          pip install --upgrade pip && pip install mkdocs-material mkdocs-material-extensions mkdocs-minify-plugin mkdocs-include-markdown-plugin
+          pip install --upgrade pip && pip install mkdocs-material mkdocs-material-extensions mkdocs-minify-plugin
           mkdocs gh-deploy --force
