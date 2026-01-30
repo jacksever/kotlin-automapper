@@ -9,15 +9,17 @@ group = "io.github.jacksever.automapper"
 version = "0.8.0"
 
 kotlin {
+    // JVM/Android targets
     jvm()
-    iosArm64()
-    iosSimulatorArm64()
+
+    // JS targets
     js(IR) {
         nodejs()
         browser()
         binaries.executable()
     }
 
+    // Wasm targets
     @OptIn(ExperimentalWasmDsl::class)
     wasmWasi {
         nodejs()
@@ -30,6 +32,27 @@ kotlin {
         browser()
         binaries.executable()
     }
+
+    // iOS targets
+    iosArm64()
+    iosSimulatorArm64()
+
+    // macOS targets
+    macosArm64()
+
+    // watchOS targets
+    watchosArm32()
+    watchosArm64()
+    watchosDeviceArm64()
+    watchosSimulatorArm64()
+
+    // tvOS targets
+    tvosArm64()
+    tvosSimulatorArm64()
+
+    // Linux targets
+    linuxX64()
+    linuxArm64()
 }
 
 mavenPublishing {
@@ -55,7 +78,7 @@ mavenPublishing {
         developers {
             developer {
                 id.set("jacksever")
-                name.set("Alexaner Gorodnikov")
+                name.set("Alexander Gorodnikov")
                 email.set("alexander.gorodnikov@gmail.com")
                 organization.set("GitHub")
                 organizationUrl.set("https://github.com/jacksever")
