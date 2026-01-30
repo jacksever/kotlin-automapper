@@ -16,7 +16,7 @@ Ensure you have the `ksp` plugin applied in your module's `build.gradle.kts` fil
  dependencies {
      add("kspJs", "io.github.jacksever.automapper:processor:0.8.0")
      add("kspJvm", "io.github.jacksever.automapper:processor:0.8.0")
-     add("kspIosX64", "io.github.jacksever.automapper:processor:0.8.0")
+     add("kspIosArm64", "io.github.jacksever.automapper:processor:0.8.0")
      // etc. for your other targets
  }
  ```
