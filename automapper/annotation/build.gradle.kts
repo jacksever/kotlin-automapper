@@ -9,17 +9,17 @@ group = "io.github.jacksever.automapper"
 version = "0.8.0"
 
 kotlin {
-    // JVM/Android target
+    // JVM/Android targets
     jvm()
 
-    // JS target
+    // JS targets
     js(IR) {
         nodejs()
         browser()
         binaries.executable()
     }
 
-    // WASM targets
+    // Wasm targets
     @OptIn(ExperimentalWasmDsl::class)
     wasmWasi {
         nodejs()
@@ -37,7 +37,7 @@ kotlin {
     iosArm64()
     iosSimulatorArm64()
 
-    // macOS target
+    // macOS targets
     macosArm64()
 
     // watchOS targets

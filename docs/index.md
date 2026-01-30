@@ -6,6 +6,17 @@ Effortless, type-safe object-to-object mapping in Kotlin. Tired of writing boile
 
 Kotlin AutoMapper uses KSP (Kotlin Symbol Processing) to generate extension functions that automatically map your `data`, `enum`, and `sealed` classes. No reflection, no runtime magic - just pure, fast, and safe generated code for all your targets.
 
+## Supported Platforms
+
+Kotlin AutoMapper is built with Kotlin Multiplatform and supports a wide range of targets out-of-the-box:
+
+*   :fontawesome-brands-android: **Android**
+*   :fontawesome-brands-java: **JVM/Desktop**
+*   :fontawesome-brands-js: **JavaScript** (Browser & Node.js)
+*   :material-web: **Wasm** (JS & Wasi)
+*   :fontawesome-brands-apple: **iOS**, **macOS**, **watchOS**, **tvOS** (Device & Simulator)
+*   :fontawesome-brands-linux: **Linux**
+
 ## License
 
     Copyright (c) 2026 Alexander Gorodnikov

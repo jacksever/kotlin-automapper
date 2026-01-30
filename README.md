@@ -10,7 +10,12 @@ Kotlin AutoMapper uses KSP (Kotlin Symbol Processing) to generate extension func
 
 ## Features
 
--   **Kotlin Multiplatform First:** Works seamlessly across `JVM`, `iOS`, `JS`, `Wasm`, and other Kotlin targets.
+-   **Kotlin Multiplatform First:** Works seamlessly across a wide range of targets:
+    -   **Android** & **JVM/Desktop**
+    -   **JavaScript** (Browser & Node.js)
+    -   **Wasm** (JS & Wasi)
+    -   **iOS**, **macOS**, **watchOS**, **tvOS**
+    -   **Linux**
 -   **Type-Safe & Compile-Time Verified:** All mappings are generated and validated by KSP at compile time. No reflection, no runtime errors.
 -   **Zero Runtime Dependencies:** The annotation library is `SOURCE`-only and adds no overhead to your production app.
 -   **Broad Class Support:** Out-of-the-box support for `data`, `enum`, and `sealed` classes, including complex nested hierarchies.
