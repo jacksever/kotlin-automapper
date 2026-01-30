@@ -29,7 +29,7 @@ mavenPublishing {
         developers {
             developer {
                 id.set("jacksever")
-                name.set("Alexaner Gorodnikov")
+                name.set("Alexander Gorodnikov")
                 email.set("alexander.gorodnikov@gmail.com")
                 organization.set("GitHub")
                 organizationUrl.set("https://github.com/jacksever")

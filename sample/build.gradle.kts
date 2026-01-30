@@ -6,15 +6,17 @@ plugins {
 }
 
 kotlin {
+    // JVM/Android target
     jvm()
-    iosArm64()
-    iosSimulatorArm64()
+
+    // JS target
     js(IR) {
         nodejs()
         browser()
         binaries.executable()
     }
 
+    // WASM targets
     @OptIn(ExperimentalWasmDsl::class)
     wasmWasi {
         nodejs()
@@ -28,6 +30,27 @@ kotlin {
         binaries.executable()
     }
 
+    // iOS targets
+    iosArm64()
+    iosSimulatorArm64()
+
+    // macOS target
+    macosArm64()
+
+    // watchOS targets
+    watchosArm32()
+    watchosArm64()
+    watchosDeviceArm64()
+    watchosSimulatorArm64()
+
+    // tvOS targets
+    tvosArm64()
+    tvosSimulatorArm64()
+
+    // Linux targets
+    linuxX64()
+    linuxArm64()
+
     sourceSets {
         commonMain.dependencies {
             implementation(project(":automapper:annotation"))
@@ -39,12 +62,10 @@ kotlin {
     }
 }
 
-tasks.withType<Test>().configureEach {
-    useJUnitPlatform()
-}
-
 dependencies {
     add("kspCommonMainMetadata", project(":automapper:processor"))
     add("kspJvm", project(":automapper:processor"))
     add("kspJvmTest", project(":automapper:processor"))
 }
+
+tasks.withType<Test>().configureEach { useJUnitPlatform() }
