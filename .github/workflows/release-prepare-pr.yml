@@ -35,6 +35,7 @@ jobs:
           VERSION=${{ github.event.inputs.version }}
           sed -i "s/^version = \".*\"/version = \"$VERSION\"/" automapper/processor/build.gradle.kts
           sed -i "s/^version = \".*\"/version = \"$VERSION\"/" automapper/annotation/build.gradle.kts
+          sed -i "s/kotlin-automapper = \".*\"/kotlin-automapper = \"$VERSION\"/" docs/setup.md
           sed -i -r "s/(io\.github\.jacksever\.automapper:[^:]*:)[0-9]+\.[0-9]+\.[0-9]+(.*)/\1$VERSION\2/g" docs/setup.md
 
       # Commits the version changes and pushes the new release branch
