@@ -4,7 +4,7 @@ org-jetbrains-kotlin = "2.3.0"
 # endregion
 
 # region Google
-com-google-ksp = "2.3.4"
+com-google-ksp = "2.3.5"
 # endregion
 
 # region Code Generation
