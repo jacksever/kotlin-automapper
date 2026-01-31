@@ -19,7 +19,11 @@ package io.github.jacksever.automapper.sample
 import io.github.jacksever.automapper.sample.mapper.asComplexTarget
 import io.github.jacksever.automapper.sample.mapper.asDefaultValueTarget
 import io.github.jacksever.automapper.sample.mapper.asInstantConverterTarget
+import io.github.jacksever.automapper.sample.mapper.asNonNullToNonNullConverterTarget
+import io.github.jacksever.automapper.sample.mapper.asNonNullToNullableConverterTarget
 import io.github.jacksever.automapper.sample.mapper.asNullabilityTarget
+import io.github.jacksever.automapper.sample.mapper.asNullableToNonNullConverterTarget
+import io.github.jacksever.automapper.sample.mapper.asNullableToNullableConverterTarget
 import io.github.jacksever.automapper.sample.mapper.asPriorityTarget
 import io.github.jacksever.automapper.sample.mapper.asRenameTarget
 import io.github.jacksever.automapper.sample.mapper.asReversibleSource
@@ -32,7 +36,11 @@ import io.github.jacksever.automapper.sample.mapper.asUnsafeTarget
 import io.github.jacksever.automapper.sample.model.ComplexSource
 import io.github.jacksever.automapper.sample.model.DefaultValueSource
 import io.github.jacksever.automapper.sample.model.InstantConverterSource
+import io.github.jacksever.automapper.sample.model.NonNullToNonNullConverterSource
+import io.github.jacksever.automapper.sample.model.NonNullToNullableConverterSource
 import io.github.jacksever.automapper.sample.model.NullabilitySource
+import io.github.jacksever.automapper.sample.model.NullableToNonNullConverterSource
+import io.github.jacksever.automapper.sample.model.NullableToNullableConverterSource
 import io.github.jacksever.automapper.sample.model.PrioritySource
 import io.github.jacksever.automapper.sample.model.RenameSource
 import io.github.jacksever.automapper.sample.model.ReversibleSource
@@ -45,7 +53,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.time.Clock
-import kotlin.time.ExperimentalTime
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -195,6 +202,47 @@ class DataClassMappingTest {
         assertEquals(expected = 99L, actual = target.id) // Type conversion + rename
         assertEquals(expected = "1", actual = target.statusText) // Type conversion + rename
         assertEquals(expected = "Empty", actual = target.content) // Default value
+    }
+
+    @Test
+    @OptIn(ExperimentalUuidApi::class)
+    fun `test mapping with nullable converters`() {
+        // Given
+        val uuid = Uuid.random()
+
+        // When: T -> U? (non-nullable source to nullable target)
+        val source1 = NonNullToNullableConverterSource(uuid = uuid)
+        val target1 = source1.asNonNullToNullableConverterTarget()
+
+        // Then
+        assertEquals(expected = uuid.toString(), actual = target1.uuid)
+
+        // When: T? -> U (nullable source to non-nullable target)
+        val source2NonNull = NullableToNonNullConverterSource(uuid = uuid)
+        val target2NonNull = source2NonNull.asNullableToNonNullConverterTarget()
+        val source2Null = NullableToNonNullConverterSource(uuid = null)
+        val target2Null = source2Null.asNullableToNonNullConverterTarget()
+
+        // Then
+        assertEquals(expected = "default-uuid", actual = target2Null.uuid)
+        assertEquals(expected = uuid.toString(), actual = target2NonNull.uuid)
+
+        // When: T? -> U? (nullable source to nullable target)
+        val source3NonNull = NullableToNullableConverterSource(uuid = uuid)
+        val target3NonNull = source3NonNull.asNullableToNullableConverterTarget()
+        val source3Null = NullableToNullableConverterSource(uuid = null)
+        val target3Null = source3Null.asNullableToNullableConverterTarget()
+
+        // Then
+        assertNull(actual = target3Null.uuid)
+        assertEquals(expected = uuid.toString(), actual = target3NonNull.uuid)
+
+        // When: T -> U (non-nullable source to non-nullable target)
+        val source4 = NonNullToNonNullConverterSource(uuid = uuid)
+        val target4 = source4.asNonNullToNonNullConverterTarget()
+
+        // Then
+        assertEquals(expected = uuid.toString(), actual = target4.uuid)
     }
 
     @Test

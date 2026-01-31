@@ -16,12 +16,12 @@
 
 package io.github.jacksever.automapper.processor.formatter
 
-import com.google.devtools.ksp.symbol.ClassKind
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSType
-import com.google.devtools.ksp.symbol.Modifier
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.ksp.toClassName
+import io.github.jacksever.automapper.processor.extenstion.isEnum
+import io.github.jacksever.automapper.processor.extenstion.isSealed
 
 /**
  * Helper object for formatting default value strings into typed [CodeBlock]s
@@ -50,15 +50,4 @@ internal object DefaultValueFormatter {
             else -> CodeBlock.of("%L", defaultValue)
         }
     }
-
-    /**
-     * Checks if the [KSType] represents an enum class
-     */
-    private fun KSType.isEnum(): Boolean =
-        (declaration as? KSClassDeclaration)?.classKind == ClassKind.ENUM_CLASS
-
-    /**
-     * Checks if the [KSType] represents a sealed class
-     */
-    private fun KSType.isSealed(): Boolean = declaration.modifiers.contains(Modifier.SEALED)
 }

@@ -86,3 +86,31 @@ data class ReversibleWithConverterSource(val id: Int, val uuid: Uuid)
 
 /** Used for testing custom type converters with [Uuid] */
 data class ReversibleWithConverterTarget(val id: Int, val uuid: String)
+
+/** Used for testing converter mapping from a non-nullable property to a nullable property */
+@OptIn(ExperimentalUuidApi::class)
+data class NonNullToNullableConverterSource(val uuid: Uuid)
+
+/** Used for testing converter mapping from a non-nullable property to a nullable property */
+data class NonNullToNullableConverterTarget(val uuid: String?)
+
+/** Used for testing converter mapping from a nullable property to a non-nullable property */
+@OptIn(ExperimentalUuidApi::class)
+data class NullableToNonNullConverterSource(val uuid: Uuid?)
+
+/** Used for testing converter mapping from a nullable property to a non-nullable property */
+data class NullableToNonNullConverterTarget(val uuid: String)
+
+/** Used for testing converter mapping between nullable properties */
+@OptIn(ExperimentalUuidApi::class)
+data class NullableToNullableConverterSource(val uuid: Uuid?)
+
+/** Used for testing converter mapping between nullable properties */
+data class NullableToNullableConverterTarget(val uuid: String?)
+
+/** Used for testing converter mapping between non-nullable properties */
+@OptIn(ExperimentalUuidApi::class)
+data class NonNullToNonNullConverterSource(val uuid: Uuid)
+
+/** Used for testing converter mapping between non-nullable properties */
+data class NonNullToNonNullConverterTarget(val uuid: String)

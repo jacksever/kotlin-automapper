@@ -30,8 +30,16 @@ import io.github.jacksever.automapper.sample.model.DefaultValueSource
 import io.github.jacksever.automapper.sample.model.DefaultValueTarget
 import io.github.jacksever.automapper.sample.model.InstantConverterSource
 import io.github.jacksever.automapper.sample.model.InstantConverterTarget
+import io.github.jacksever.automapper.sample.model.NonNullToNonNullConverterSource
+import io.github.jacksever.automapper.sample.model.NonNullToNonNullConverterTarget
+import io.github.jacksever.automapper.sample.model.NonNullToNullableConverterSource
+import io.github.jacksever.automapper.sample.model.NonNullToNullableConverterTarget
 import io.github.jacksever.automapper.sample.model.NullabilitySource
 import io.github.jacksever.automapper.sample.model.NullabilityTarget
+import io.github.jacksever.automapper.sample.model.NullableToNonNullConverterSource
+import io.github.jacksever.automapper.sample.model.NullableToNonNullConverterTarget
+import io.github.jacksever.automapper.sample.model.NullableToNullableConverterSource
+import io.github.jacksever.automapper.sample.model.NullableToNullableConverterTarget
 import io.github.jacksever.automapper.sample.model.PrioritySource
 import io.github.jacksever.automapper.sample.model.PriorityTarget
 import io.github.jacksever.automapper.sample.model.RenameSource
@@ -69,7 +77,23 @@ internal interface DataClassTestMapperModule {
     fun customTypeConverterMapper(from: InstantConverterSource): InstantConverterTarget
 
     @AutoMapper
-    fun reversibleMapper(source: ReversibleWithConverterSource): ReversibleWithConverterTarget
+    fun reversibleWithConverterMapper(source: ReversibleWithConverterSource): ReversibleWithConverterTarget
+
+    @AutoMapper
+    fun nonNullToNonNullConverterMapper(from: NonNullToNonNullConverterSource): NonNullToNonNullConverterTarget
+
+    @AutoMapper
+    fun nonNullToNullableConverterMapper(from: NonNullToNullableConverterSource): NonNullToNullableConverterTarget
+
+    @AutoMapper(
+        defaultValues = [
+            DefaultValue(property = "uuid", "default-uuid")
+        ]
+    )
+    fun nullableToNonNullConverterMapper(from: NullableToNonNullConverterSource): NullableToNonNullConverterTarget
+
+    @AutoMapper
+    fun nullableToNullableConverterMapper(from: NullableToNullableConverterSource): NullableToNullableConverterTarget
 
     @AutoMapper(
         propertyMappings = [
