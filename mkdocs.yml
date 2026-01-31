@@ -15,6 +15,7 @@ copyright: 'Copyright &copy; 2026 Alexander Gorodnikov'
 # Configuration
 theme:
   name: 'material'
+  custom_dir: 'docs/overrides'
   language: 'en'
   palette:
     # Palette toggle for automatic mode
