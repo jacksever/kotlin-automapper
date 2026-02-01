@@ -44,6 +44,16 @@ enum class DefaultValueSource {
  * This is used within the `@AutoMapper` annotation to provide fallback values for properties
  * that cannot be mapped from the source object or are null
  *
+ * Example:
+ * ```
+ * @AutoMapper(
+ *     defaultValues = [
+ *         DefaultValue(property = "status", value = "DEFAULT")
+ *     ]
+ * )
+ * fun sourceMapper(source: SourceClass): TargetClass
+ * ```
+ *
  * @property property the name of the property in the target class
  * @property value the string representation of the default value. Required for INLINE and PARAMETER_WITH_DEFAULT modes
  * @property source the source determining how the default value is resolved
