@@ -34,12 +34,19 @@ internal object DefaultValueFormatter {
     /**
      * Formats the default value string into a [CodeBlock] based on the target type
      */
-    fun format(targetType: KSType, defaultValue: String): CodeBlock {
-        val targetTypeName = targetType.declaration.simpleName.asString()
+    fun format(targetType: KSType, defaultValue: String): CodeBlock =
+        when {
+            targetType.isKotlinString() -> {
+                CodeBlock.of("%S", defaultValue.removeSurrounding(delimiter = "\""))
+            }
 
-        return when {
-            targetTypeName == "String" -> CodeBlock.of("%S", defaultValue)
-            targetTypeName == "Char" -> CodeBlock.of("'%L'", defaultValue.trim('\''))
+            targetType.isKotlinChar() -> {
+                val charValue = defaultValue.trim('\'')
+                require(charValue.length == 1) { "Default value '$defaultValue' is not a valid Char literal" }
+
+                CodeBlock.of("'%L'", charValue)
+            }
+
             targetType.isEnum() || targetType.isSealed() -> {
                 val entry = defaultValue.substringAfterLast(delimiter = '.')
                 val className = (targetType.declaration as KSClassDeclaration).toClassName()
@@ -49,5 +56,16 @@ internal object DefaultValueFormatter {
 
             else -> CodeBlock.of("%L", defaultValue)
         }
-    }
+
+    /**
+     * Checks if the [KSType] represents the built-in `kotlin.String` type
+     */
+    private fun KSType.isKotlinString(): Boolean =
+        declaration.qualifiedName?.asString() == "kotlin.String"
+
+    /**
+     * Checks if the [KSType] represents the primitive `kotlin.Char` type
+     */
+    private fun KSType.isKotlinChar(): Boolean =
+        declaration.qualifiedName?.asString() == "kotlin.Char"
 }

@@ -22,6 +22,9 @@ import com.google.devtools.ksp.symbol.KSType
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.buildCodeBlock
 import io.github.jacksever.automapper.annotation.DefaultValue
+import io.github.jacksever.automapper.annotation.DefaultValueSource.INLINE
+import io.github.jacksever.automapper.annotation.DefaultValueSource.PARAMETER
+import io.github.jacksever.automapper.annotation.DefaultValueSource.PARAMETER_WITH_DEFAULT
 import io.github.jacksever.automapper.annotation.PropertyMapping
 import io.github.jacksever.automapper.processor.converter.CollectionConverter
 import io.github.jacksever.automapper.processor.converter.ObjectConverter
@@ -100,11 +103,16 @@ internal object ParameterHelper {
                         converters = converters,
                     )
 
+                    val isShadowed = defaultValue?.let { value ->
+                        value.source != INLINE && targetParameterName == sourceParameterName
+                    } ?: false
+
                     if (explicitConverter != null) {
                         add(
                             buildConverterAssignment(
                                 sourceType = sourceType,
                                 targetType = targetType,
+                                isShadowed = isShadowed,
                                 defaultValue = defaultValue,
                                 converter = explicitConverter,
                                 sourceParameterName = sourceParameterName,
@@ -116,15 +124,19 @@ internal object ParameterHelper {
                         val conversion = getConversionExpression(
                             sourceType = sourceType,
                             targetType = targetType,
+                            isShadowed = isShadowed,
                             defaultValue = defaultValue,
                         )
 
                         add(
                             buildCodeBlock {
+                                val sourceName = "this.$sourceParameterName".takeIf { isShadowed }
+                                    ?: sourceParameterName
+
                                 add(
                                     "%L = %L%L",
                                     targetParameterName,
-                                    sourceParameterName,
+                                    sourceName,
                                     conversion
                                 )
                             }
@@ -133,11 +145,35 @@ internal object ParameterHelper {
                 }
 
                 defaultValue != null -> {
-                    val targetType = targetParameter.type.resolve()
-                    val formattedValue =
-                        format(targetType = targetType, defaultValue = defaultValue.value)
+                    when (defaultValue.source) {
+                        INLINE -> {
+                            add(
+                                buildCodeBlock {
+                                    add(
+                                        "%L = %L",
+                                        targetParameterName,
+                                        format(
+                                            targetType = targetParameter.type.resolve(),
+                                            defaultValue = defaultValue.value
+                                        )
+                                    )
+                                }
+                            )
+                        }
 
-                    add(buildCodeBlock { add("%L = %L", targetParameterName, formattedValue) })
+                        PARAMETER,
+                        PARAMETER_WITH_DEFAULT -> {
+                            add(
+                                buildCodeBlock {
+                                    add(
+                                        "%L = %L",
+                                        targetParameterName,
+                                        targetParameterName
+                                    )
+                                }
+                            )
+                        }
+                    }
                 }
 
                 targetParameter.hasDefault -> {
@@ -171,20 +207,22 @@ internal object ParameterHelper {
     private fun buildConverterAssignment(
         sourceType: KSType,
         targetType: KSType,
+        isShadowed: Boolean,
         sourceParameterName: String,
         targetParameterName: String,
         defaultValue: DefaultValue?,
         converter: ConverterDefinition,
     ): CodeBlock {
         val member = converter.function.asMemberName()
+        val sourceName = "this.$sourceParameterName".takeIf { isShadowed } ?: sourceParameterName
 
         // Use ?.let if source is nullable but converter input is not
         val needsSafeCall = sourceType.isMarkedNullable && !converter.from.isMarkedNullable
         val baseCall = buildCodeBlock {
             if (needsSafeCall) {
-                add("%L?.let { value -> %M(value) }", sourceParameterName, member)
+                add("%L?.let { value -> %M(value) }", sourceName, member)
             } else {
-                add("%M(%L)", member, sourceParameterName)
+                add("%M(%L)", member, sourceName)
             }
         }
 
@@ -200,8 +238,20 @@ internal object ParameterHelper {
             add(baseCall)
 
             if (needsFallback) {
-                defaultValue?.let { value ->
-                    add(" ?: %L", format(targetType = targetType, defaultValue = value.value))
+                defaultValue?.let { default ->
+                    when (default.source) {
+                        INLINE -> {
+                            add(
+                                " ?: %L",
+                                format(targetType = targetType, defaultValue = default.value)
+                            )
+                        }
+
+                        PARAMETER,
+                        PARAMETER_WITH_DEFAULT -> {
+                            add(" ?: %L", targetParameterName)
+                        }
+                    }
                 } ?: add("!!")
             }
         }
@@ -213,6 +263,7 @@ internal object ParameterHelper {
     private fun getConversionExpression(
         sourceType: KSType,
         targetType: KSType,
+        isShadowed: Boolean,
         defaultValue: DefaultValue?,
     ): CodeBlock {
         // 0. Exact match
@@ -226,6 +277,7 @@ internal object ParameterHelper {
             conversion = CollectionConverter.getConversion(
                 sourceType = sourceType,
                 targetType = targetType,
+                isShadowed = isShadowed,
                 defaultValue = defaultValue,
                 getInnerConversion = ::getConversionExpression,
             )
@@ -244,11 +296,22 @@ internal object ParameterHelper {
             if (!targetType.isMarkedNullable) {
                 return buildCodeBlock {
                     defaultValue?.let { default ->
-                        add(
-                            "%L ?: %L",
-                            conversion,
-                            format(targetType = targetType, defaultValue = default.value)
-                        )
+                        val fallback = when (default.source) {
+                            INLINE -> {
+                                format(targetType = targetType, defaultValue = default.value)
+                            }
+
+                            PARAMETER,
+                            PARAMETER_WITH_DEFAULT -> {
+                                default.property
+                            }
+                        }
+
+                        if (conversion.isNotEmpty()) {
+                            add(".%L ?: %L", conversion, fallback)
+                        } else {
+                            add(" ?: %L", fallback)
+                        }
                     } ?: add("!!%L", conversion)
                 }
             } else {

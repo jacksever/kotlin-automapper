@@ -2,6 +2,8 @@
 
 While AutoMapper handles primitive conversions (e.g., `Int` to `String`), you often need custom logic for complex types, like converting a `kotlin.uuid.Uuid` to a `String` or a `kotlin.time.Instant` to a `Long`. The `@AutoConverter` annotation is designed for this.
 
+---
+
 ## How It Works
 
 The easiest way to understand custom converters is with a non-nullable example.

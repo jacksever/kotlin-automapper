@@ -19,6 +19,7 @@ package io.github.jacksever.automapper.sample.mapper
 import io.github.jacksever.automapper.annotation.AutoMapper
 import io.github.jacksever.automapper.annotation.AutoMapperModule
 import io.github.jacksever.automapper.annotation.DefaultValue
+import io.github.jacksever.automapper.annotation.DefaultValueSource
 import io.github.jacksever.automapper.annotation.PropertyMapping
 import io.github.jacksever.automapper.sample.converter.GlobalPriorityConverter
 import io.github.jacksever.automapper.sample.converter.InstantConverter
@@ -26,8 +27,8 @@ import io.github.jacksever.automapper.sample.converter.LocalPriorityConverter
 import io.github.jacksever.automapper.sample.converter.UuidConverter
 import io.github.jacksever.automapper.sample.model.ComplexSource
 import io.github.jacksever.automapper.sample.model.ComplexTarget
-import io.github.jacksever.automapper.sample.model.DefaultValueSource
-import io.github.jacksever.automapper.sample.model.DefaultValueTarget
+import io.github.jacksever.automapper.sample.model.InlineDefaultValueSource
+import io.github.jacksever.automapper.sample.model.InlineDefaultValueTarget
 import io.github.jacksever.automapper.sample.model.InstantConverterSource
 import io.github.jacksever.automapper.sample.model.InstantConverterTarget
 import io.github.jacksever.automapper.sample.model.NonNullToNonNullConverterSource
@@ -48,6 +49,10 @@ import io.github.jacksever.automapper.sample.model.ReversibleSource
 import io.github.jacksever.automapper.sample.model.ReversibleTarget
 import io.github.jacksever.automapper.sample.model.ReversibleWithConverterSource
 import io.github.jacksever.automapper.sample.model.ReversibleWithConverterTarget
+import io.github.jacksever.automapper.sample.model.RuntimeOptionalDefaultValueSource
+import io.github.jacksever.automapper.sample.model.RuntimeOptionalDefaultValueTarget
+import io.github.jacksever.automapper.sample.model.RuntimeRequiredDefaultValueSource
+import io.github.jacksever.automapper.sample.model.RuntimeRequiredDefaultValueTarget
 import io.github.jacksever.automapper.sample.model.SimpleSource
 import io.github.jacksever.automapper.sample.model.SimpleTarget
 import io.github.jacksever.automapper.sample.model.TypeConversionSource
@@ -85,15 +90,43 @@ internal interface DataClassTestMapperModule {
     @AutoMapper
     fun nonNullToNullableConverterMapper(from: NonNullToNullableConverterSource): NonNullToNullableConverterTarget
 
+    @AutoMapper
+    fun nullableToNullableConverterMapper(from: NullableToNullableConverterSource): NullableToNullableConverterTarget
+
     @AutoMapper(
         defaultValues = [
-            DefaultValue(property = "uuid", "default-uuid")
+            DefaultValue(property = "description", value = "Default"),
+        ]
+    )
+    fun inlineDefaultValueMapper(from: InlineDefaultValueSource): InlineDefaultValueTarget
+
+    @AutoMapper(
+        defaultValues = [
+            DefaultValue(property = "uuid", value = "default-uuid")
         ]
     )
     fun nullableToNonNullConverterMapper(from: NullableToNonNullConverterSource): NullableToNonNullConverterTarget
 
-    @AutoMapper
-    fun nullableToNullableConverterMapper(from: NullableToNullableConverterSource): NullableToNullableConverterTarget
+    @AutoMapper(
+        defaultValues = [
+            DefaultValue(
+                property = "description",
+                source = DefaultValueSource.PARAMETER
+            )
+        ]
+    )
+    fun runtimeRequiredDefaultValueMapper(from: RuntimeRequiredDefaultValueSource): RuntimeRequiredDefaultValueTarget
+
+    @AutoMapper(
+        defaultValues = [
+            DefaultValue(
+                property = "description",
+                value = "OptionalDefault",
+                source = DefaultValueSource.PARAMETER_WITH_DEFAULT
+            )
+        ]
+    )
+    fun runtimeOptionalDefaultValueMapper(from: RuntimeOptionalDefaultValueSource): RuntimeOptionalDefaultValueTarget
 
     @AutoMapper(
         propertyMappings = [
@@ -121,11 +154,4 @@ internal interface DataClassTestMapperModule {
         ]
     )
     fun reversibleMapper(from: ReversibleSource): ReversibleTarget
-
-    @AutoMapper(
-        defaultValues = [
-            DefaultValue(property = "description", value = "Default"),
-        ]
-    )
-    fun defaultValueMapper(from: DefaultValueSource): DefaultValueTarget
 }

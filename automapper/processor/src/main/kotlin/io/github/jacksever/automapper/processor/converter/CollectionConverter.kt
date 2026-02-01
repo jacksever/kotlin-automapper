@@ -36,61 +36,80 @@ internal object CollectionConverter {
     fun getConversion(
         sourceType: KSType,
         targetType: KSType,
+        isShadowed: Boolean,
         defaultValue: DefaultValue?,
-        getInnerConversion: (sourceType: KSType, targetType: KSType, defaultValue: DefaultValue?) -> CodeBlock,
+        getInnerConversion: (
+            sourceType: KSType,
+            targetType: KSType,
+            isShadowed: Boolean,
+            defaultValue: DefaultValue?
+        ) -> CodeBlock,
     ): CodeBlock {
-        val sourceDeclaration =
-            sourceType.declaration as? KSClassDeclaration ?: return CodeBlock.of("")
-        val targetDeclaration =
-            targetType.declaration as? KSClassDeclaration ?: return CodeBlock.of("")
+        val sourceDeclaration = sourceType.declaration as? KSClassDeclaration ?: return EMPTY
+        val targetDeclaration = targetType.declaration as? KSClassDeclaration ?: return EMPTY
 
-        val isSourceList = sourceDeclaration.isList()
-        val isSourceSet = sourceDeclaration.isSet()
-        val isTargetList = targetDeclaration.isList()
-        val isTargetSet = targetDeclaration.isSet()
+        val sourceKind = sourceDeclaration.collectionKind() ?: return EMPTY
+        val targetKind = targetDeclaration.collectionKind() ?: return EMPTY
 
-        // Check if both are supported collections
-        if ((isSourceList || isSourceSet) && (isTargetList || isTargetSet)) {
-            val sourceArg = sourceType.arguments.firstOrNull()?.type?.resolve()
-            val targetArg = targetType.arguments.firstOrNull()?.type?.resolve()
+        val sourceArg = sourceType.arguments.firstOrNull()?.type?.resolve() ?: return EMPTY
+        val targetArg = targetType.arguments.firstOrNull()?.type?.resolve() ?: return EMPTY
 
-            if (sourceArg != null && targetArg != null) {
-                val innerConversion = getInnerConversion(sourceArg, targetArg, defaultValue)
+        val innerConversion =
+            getInnerConversion(sourceArg, targetArg, isShadowed, defaultValue)
 
-                // If elements need conversion OR container type changes (e.g. Set -> List)
-                if (innerConversion.isNotEmpty() || (isSourceSet && isTargetList) || (isSourceList && isTargetSet)) {
-                    return buildCodeBlock {
-                        add(".map { value -> value%L }", innerConversion)
-                        if (isTargetSet) {
-                            add(".toSet()")
-                        }
-                    }
-                }
-            }
+        val needsElementConversion = innerConversion.isNotEmpty()
+        val needsContainerConversion = sourceKind != targetKind
+
+        if (!needsElementConversion && !needsContainerConversion) {
+            return EMPTY
         }
 
-        return CodeBlock.of("")
+        return buildCodeBlock {
+            add(".map { value -> value%L }", innerConversion)
+
+            if (targetKind == CollectionKind.SET) {
+                add(".toSet()")
+            }
+        }
     }
 
     /**
-     * Checks if the class declaration corresponds to a List type (Kotlin or Java)
+     * An empty conversion expression
+     *
+     * Used as a default or fallback when no specific conversion is needed
      */
-    private fun KSClassDeclaration.isList(): Boolean {
-        val name = qualifiedName?.asString()
+    private val EMPTY = CodeBlock.of("")
 
-        return name == "kotlin.collections.List" ||
-                name == "kotlin.collections.MutableList" ||
-                name == "java.util.List"
+    /**
+     * Represents the kind of a collection, distinguishing between List and Set types
+     */
+    private enum class CollectionKind {
+
+        /**
+         * A boolean flag indicating if the collection kind is a `List`
+         */
+        LIST,
+
+        /**
+         * A boolean flag indicating if the collection kind is a `Set`
+         */
+        SET,
+        ;
     }
 
     /**
-     * Checks if the class declaration corresponds to a Set type (Kotlin or Java)
+     * Determines the [CollectionKind] (List or Set) of a given class declaration
      */
-    private fun KSClassDeclaration.isSet(): Boolean {
-        val name = qualifiedName?.asString()
+    private fun KSClassDeclaration.collectionKind(): CollectionKind? =
+        when (qualifiedName?.asString()) {
+            "kotlin.collections.List",
+            "kotlin.collections.MutableList",
+            "java.util.List" -> CollectionKind.LIST
 
-        return name == "kotlin.collections.Set" ||
-                name == "kotlin.collections.MutableSet" ||
-                name == "java.util.Set"
-    }
+            "kotlin.collections.Set",
+            "kotlin.collections.MutableSet",
+            "java.util.Set" -> CollectionKind.SET
+
+            else -> null
+        }
 }

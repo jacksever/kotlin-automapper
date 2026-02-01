@@ -59,7 +59,8 @@ nav:
   - 'How to Use': 'how-to-use.md'
   - 'Advanced Usage':
       - 'Unidirectional Mapping': 'advanced/unidirectional-mapping.md'
-      - 'Customizing Mappings': 'advanced/customizing-mappings.md'
+      - 'Property Mapping': 'advanced/property-mapping.md'
+      - 'Default Values': 'advanced/default-values.md'
       - 'Custom Type Conversion': 'advanced/custom-type-conversion.md'
   - 'Contributing': 'contributing.md'
   - 'Code of Conduct': 'code_of_conduct.md'

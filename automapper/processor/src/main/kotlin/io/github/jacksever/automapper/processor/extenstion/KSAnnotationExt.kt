@@ -17,6 +17,7 @@
 package io.github.jacksever.automapper.processor.extenstion
 
 import com.google.devtools.ksp.symbol.KSAnnotation
+import com.google.devtools.ksp.symbol.KSClassDeclaration
 
 /**
  * Safely retrieves the value of an annotation argument by its [name]
@@ -27,6 +28,39 @@ internal fun KSAnnotation.getArgument(name: String) =
 /**
  * Safely retrieves a list of nested annotations from an argument by its [name]
  */
-internal fun KSAnnotation.getAnnotations(name: String) = (getArgument(name) as? List<*>)
+internal fun KSAnnotation.getAnnotations(name: String) = (getArgument(name = name) as? List<*>)
     ?.filterIsInstance<KSAnnotation>()
     ?: emptyList()
+
+/**
+ * Retrieves a string-valued annotation argument by its [name]
+ *
+ * If the argument is not present or is not a string, the provided [default]
+ * value is returned instead
+ */
+internal fun KSAnnotation.stringArg(name: String, default: String = ""): String =
+    getArgument(name = name) as? String ?: default
+
+/**
+ * Retrieves a boolean-valued annotation argument by its [name]
+ *
+ * If the argument is not present or is not a boolean, the provided [default]
+ * value is returned
+ */
+internal fun KSAnnotation.booleanArg(name: String, default: Boolean = false): Boolean =
+    getArgument(name = name) as? Boolean ?: default
+
+/**
+ * Retrieves an enum-valued annotation argument by its [name]
+ *
+ * If the argument is not present or cannot be resolved, the provided [default]
+ * value is returned
+ */
+internal inline fun <reified E : Enum<E>> KSAnnotation.enumArg(
+    name: String,
+    default: E,
+): E = (getArgument(name = name) as? KSClassDeclaration)
+    ?.simpleName
+    ?.asString()
+    ?.let { name -> enumValueOf<E>(name = name) }
+    ?: default
