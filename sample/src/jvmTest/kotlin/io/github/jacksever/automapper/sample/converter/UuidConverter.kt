@@ -24,8 +24,8 @@ import kotlin.uuid.Uuid
 internal object UuidConverter {
 
     @AutoConverter
-    fun fromUuid(value: Uuid): String = value.toString()
+    fun fromUuid(value: Uuid?): String? = value?.toString()
 
     @AutoConverter
-    fun toUuid(value: String): Uuid = Uuid.parse(uuidString = value)
+    fun toUuid(value: String?): Uuid? = value?.let { value -> Uuid.parse(uuidString = value) }
 }
