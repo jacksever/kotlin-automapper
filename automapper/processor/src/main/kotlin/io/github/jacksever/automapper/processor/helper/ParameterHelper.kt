@@ -22,7 +22,9 @@ import com.google.devtools.ksp.symbol.KSType
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.buildCodeBlock
 import io.github.jacksever.automapper.annotation.DefaultValue
-import io.github.jacksever.automapper.annotation.DefaultValueSource
+import io.github.jacksever.automapper.annotation.DefaultValueSource.INLINE
+import io.github.jacksever.automapper.annotation.DefaultValueSource.PARAMETER
+import io.github.jacksever.automapper.annotation.DefaultValueSource.PARAMETER_WITH_DEFAULT
 import io.github.jacksever.automapper.annotation.PropertyMapping
 import io.github.jacksever.automapper.processor.converter.CollectionConverter
 import io.github.jacksever.automapper.processor.converter.ObjectConverter
@@ -102,7 +104,7 @@ internal object ParameterHelper {
                     )
 
                     val isShadowed = defaultValue?.let { value ->
-                        value.source != DefaultValueSource.INLINE && targetParameterName == sourceParameterName
+                        value.source != INLINE && targetParameterName == sourceParameterName
                     } ?: false
 
                     if (explicitConverter != null) {
@@ -122,8 +124,8 @@ internal object ParameterHelper {
                         val conversion = getConversionExpression(
                             sourceType = sourceType,
                             targetType = targetType,
+                            isShadowed = isShadowed,
                             defaultValue = defaultValue,
-                            isShadowed = isShadowed
                         )
 
                         add(
@@ -144,7 +146,7 @@ internal object ParameterHelper {
 
                 defaultValue != null -> {
                     when (defaultValue.source) {
-                        DefaultValueSource.INLINE -> {
+                        INLINE -> {
                             add(
                                 buildCodeBlock {
                                     add(
@@ -159,8 +161,8 @@ internal object ParameterHelper {
                             )
                         }
 
-                        DefaultValueSource.PARAMETER,
-                        DefaultValueSource.PARAMETER_WITH_DEFAULT -> {
+                        PARAMETER,
+                        PARAMETER_WITH_DEFAULT -> {
                             add(
                                 buildCodeBlock {
                                     add(
@@ -238,15 +240,15 @@ internal object ParameterHelper {
             if (needsFallback) {
                 defaultValue?.let { default ->
                     when (default.source) {
-                        DefaultValueSource.INLINE -> {
+                        INLINE -> {
                             add(
                                 " ?: %L",
                                 format(targetType = targetType, defaultValue = default.value)
                             )
                         }
 
-                        DefaultValueSource.PARAMETER,
-                        DefaultValueSource.PARAMETER_WITH_DEFAULT -> {
+                        PARAMETER,
+                        PARAMETER_WITH_DEFAULT -> {
                             add(" ?: %L", targetParameterName)
                         }
                     }
@@ -295,12 +297,12 @@ internal object ParameterHelper {
                 return buildCodeBlock {
                     defaultValue?.let { default ->
                         val fallback = when (default.source) {
-                            DefaultValueSource.INLINE -> {
+                            INLINE -> {
                                 format(targetType = targetType, defaultValue = default.value)
                             }
 
-                            DefaultValueSource.PARAMETER,
-                            DefaultValueSource.PARAMETER_WITH_DEFAULT -> {
+                            PARAMETER,
+                            PARAMETER_WITH_DEFAULT -> {
                                 default.property
                             }
                         }

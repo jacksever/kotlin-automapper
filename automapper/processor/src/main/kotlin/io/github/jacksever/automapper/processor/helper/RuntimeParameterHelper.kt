@@ -21,7 +21,9 @@ import com.google.devtools.ksp.symbol.Modifier
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.ksp.toTypeName
-import io.github.jacksever.automapper.annotation.DefaultValueSource
+import io.github.jacksever.automapper.annotation.DefaultValueSource.INLINE
+import io.github.jacksever.automapper.annotation.DefaultValueSource.PARAMETER
+import io.github.jacksever.automapper.annotation.DefaultValueSource.PARAMETER_WITH_DEFAULT
 import io.github.jacksever.automapper.processor.formatter.DefaultValueFormatter.format
 import io.github.jacksever.automapper.processor.model.MapperDefinition
 
@@ -53,8 +55,8 @@ internal class RuntimeParameterHelperImpl(
         funSpecBuilder: FunSpec.Builder,
         definition: MapperDefinition,
     ) {
-        val runtimeDefaults = definition.defaultValues
-            .filter { default -> default.source != DefaultValueSource.INLINE }
+        val runtimeDefaults =
+            definition.defaultValues.filter { default -> default.source != INLINE }
 
         if (runtimeDefaults.isEmpty()) return
 
@@ -91,11 +93,11 @@ internal class RuntimeParameterHelperImpl(
             val paramType = targetParameter.type.toTypeName()
 
             when (defaultValue.source) {
-                DefaultValueSource.PARAMETER -> {
+                PARAMETER -> {
                     funSpecBuilder.addParameter(name = propertyName, type = paramType)
                 }
 
-                DefaultValueSource.PARAMETER_WITH_DEFAULT -> {
+                PARAMETER_WITH_DEFAULT -> {
                     funSpecBuilder.addParameter(
                         ParameterSpec.builder(name = propertyName, type = paramType)
                             .defaultValue(
@@ -108,7 +110,7 @@ internal class RuntimeParameterHelperImpl(
                     )
                 }
 
-                DefaultValueSource.INLINE -> Unit // Unreachable
+                INLINE -> Unit // Unreachable
             }
         }
     }
