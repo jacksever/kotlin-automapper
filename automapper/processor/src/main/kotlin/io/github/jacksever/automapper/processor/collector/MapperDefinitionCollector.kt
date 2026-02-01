@@ -21,9 +21,12 @@ import com.google.devtools.ksp.symbol.KSAnnotation
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import io.github.jacksever.automapper.annotation.DefaultValue
+import io.github.jacksever.automapper.annotation.DefaultValueSource
 import io.github.jacksever.automapper.annotation.PropertyMapping
+import io.github.jacksever.automapper.processor.extenstion.booleanArg
+import io.github.jacksever.automapper.processor.extenstion.enumArg
 import io.github.jacksever.automapper.processor.extenstion.getAnnotations
-import io.github.jacksever.automapper.processor.extenstion.getArgument
+import io.github.jacksever.automapper.processor.extenstion.stringArg
 import io.github.jacksever.automapper.processor.model.ConverterDefinition
 import io.github.jacksever.automapper.processor.model.MapperDefinition
 
@@ -33,7 +36,7 @@ import io.github.jacksever.automapper.processor.model.MapperDefinition
 internal interface MapperDefinitionCollector {
 
     /**
-     * Parses a single `@AutoMapper` annotated function into a [MapperDefinition]
+     * Collects all the necessary info to create a mapper from a function declaration
      *
      * @param function function declaration to process
      * @param mapperAnnotation specific `@AutoMapper` annotation instance
@@ -62,20 +65,24 @@ internal class MapperDefinitionCollectorImpl(
     ): MapperDefinition? = runCatching {
         val parameters = function.parameters
         val functionName = function.simpleName.asString()
-        val reversible = mapperAnnotation.getArgument(name = "reversible") as? Boolean ?: true
+        val reversible = mapperAnnotation.booleanArg(name = "reversible", default = true)
         val propertyMappings = mapperAnnotation.getAnnotations(name = "propertyMappings")
             .map { annotation ->
                 PropertyMapping(
-                    from = annotation.getArgument(name = "from") as String,
-                    to = annotation.getArgument(name = "to") as String,
+                    from = annotation.stringArg(name = "from"),
+                    to = annotation.stringArg(name = "to"),
                 )
             }
             .toList()
         val defaultValues = mapperAnnotation.getAnnotations(name = "defaultValues")
             .map { annotation ->
                 DefaultValue(
-                    property = annotation.getArgument(name = "property") as String,
-                    value = annotation.getArgument(name = "value") as String,
+                    property = annotation.stringArg(name = "property"),
+                    value = annotation.stringArg(name = "value"),
+                    source = annotation.enumArg<DefaultValueSource>(
+                        name = "source",
+                        default = DefaultValueSource.INLINE,
+                    ),
                 )
             }
             .toList()

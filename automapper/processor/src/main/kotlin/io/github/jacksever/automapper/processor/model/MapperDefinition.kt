@@ -21,14 +21,14 @@ import io.github.jacksever.automapper.annotation.DefaultValue
 import io.github.jacksever.automapper.annotation.PropertyMapping
 
 /**
- * A data class that encapsulates all the necessary information for generating a single mapper
+ * Data model representing a single mapping operation to be generated
  *
- * @property source source [KSClassDeclaration]
- * @property target target [KSClassDeclaration]
- * @property reversible whether a reverse mapping should also be generated
- * @property defaultValues list of [DefaultValue] annotations for providing default values
- * @property converters list of [ConverterDefinition] for this specific mapping
- * @property propertyMappings list of [PropertyMapping] annotations for renaming properties
+ * @property source the source class for the mapping
+ * @property target the target class for the mapping
+ * @property reversible if true, a reverse mapping function will also be generated
+ * @property defaultValues list of default value mappings for target properties
+ * @property converters list of custom converter functions available for this mapping
+ * @property propertyMappings list of custom property mappings
  */
 internal data class MapperDefinition(
     val source: KSClassDeclaration,

@@ -36,8 +36,9 @@ internal object CollectionConverter {
     fun getConversion(
         sourceType: KSType,
         targetType: KSType,
+        isShadowed: Boolean,
         defaultValue: DefaultValue?,
-        getInnerConversion: (sourceType: KSType, targetType: KSType, defaultValue: DefaultValue?) -> CodeBlock,
+        getInnerConversion: (sourceType: KSType, targetType: KSType, isShadowed: Boolean, defaultValue: DefaultValue?) -> CodeBlock,
     ): CodeBlock {
         val sourceDeclaration =
             sourceType.declaration as? KSClassDeclaration ?: return CodeBlock.of("")
@@ -55,7 +56,8 @@ internal object CollectionConverter {
             val targetArg = targetType.arguments.firstOrNull()?.type?.resolve()
 
             if (sourceArg != null && targetArg != null) {
-                val innerConversion = getInnerConversion(sourceArg, targetArg, defaultValue)
+                val innerConversion =
+                    getInnerConversion(sourceArg, targetArg, isShadowed, defaultValue)
 
                 // If elements need conversion OR container type changes (e.g. Set -> List)
                 if (innerConversion.isNotEmpty() || (isSourceSet && isTargetList) || (isSourceList && isTargetSet)) {

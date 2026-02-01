@@ -41,6 +41,8 @@ import io.github.jacksever.automapper.processor.collector.MapperDefinitionCollec
 import io.github.jacksever.automapper.processor.collector.MapperDefinitionCollectorImpl
 import io.github.jacksever.automapper.processor.collector.OptInAnnotationCollector
 import io.github.jacksever.automapper.processor.collector.OptInAnnotationCollectorImpl
+import io.github.jacksever.automapper.processor.helper.RuntimeParameterHelper
+import io.github.jacksever.automapper.processor.helper.RuntimeParameterHelperImpl
 import io.github.jacksever.automapper.processor.model.MapperDefinition
 
 /**
@@ -55,6 +57,7 @@ internal class AutoMapperProcessor(
     private val codeGenerator: CodeGenerator,
 ) : SymbolProcessor,
     ConverterCollector by ConverterCollectorImpl(logger = logger),
+    RuntimeParameterHelper by RuntimeParameterHelperImpl(logger = logger),
     OptInAnnotationCollector by OptInAnnotationCollectorImpl(logger = logger),
     MapperDefinitionCollector by MapperDefinitionCollectorImpl(logger = logger) {
 
@@ -220,6 +223,14 @@ internal class AutoMapperProcessor(
 
         mappers.forEach { definition ->
             val targetClassName = definition.target.toClassName()
+            val builder = MapperBuilderFactory.getMapperBuilder(
+                logger = logger,
+                source = definition.source,
+                target = definition.target,
+                converters = definition.converters,
+                defaultValues = definition.defaultValues,
+                propertyMappings = definition.propertyMappings,
+            )
 
             val sourceToTargetFunBuilder =
                 FunSpec.builder(name = "as${targetClassName.simpleName}")
@@ -227,16 +238,15 @@ internal class AutoMapperProcessor(
                     .receiver(receiverType = sourceClassName)
                     .returns(returnType = targetClassName)
                     .addKdoc(format = "Converts [%T] to [%T]", sourceClassName, targetClassName)
-                    .addCode(
-                        codeBlock = MapperBuilderFactory.getMapperBuilder(
-                            logger = logger,
-                            source = definition.source,
-                            target = definition.target,
-                            converters = definition.converters,
-                            defaultValues = definition.defaultValues,
-                            propertyMappings = definition.propertyMappings,
-                        ).buildConversion(from = definition.source, to = definition.target)
-                    )
+
+            addRuntimeParameters(funSpecBuilder = sourceToTargetFunBuilder, definition = definition)
+
+            sourceToTargetFunBuilder.addCode(
+                codeBlock = builder.buildConversion(
+                    from = definition.source,
+                    to = definition.target,
+                )
+            )
 
             collectOptInAnnotations(
                 definition = definition,

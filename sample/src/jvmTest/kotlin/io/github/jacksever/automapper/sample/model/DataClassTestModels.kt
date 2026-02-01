@@ -32,12 +32,6 @@ data class RenameSource(val sourceId: Int, val sourceName: String)
 /** Used for testing property renaming */
 data class RenameTarget(val targetId: Int, val targetName: String)
 
-/** Used for testing default value mapping (nullable to non-nullable) */
-data class DefaultValueSource(val id: Int, val description: String?)
-
-/** Used for testing default value mapping (nullable to non-nullable) */
-data class DefaultValueTarget(val id: Int, val description: String)
-
 /** Used for testing unsafe (!!) mapping (nullable to non-nullable without default value) */
 data class UnsafeSource(val id: Int, val description: String?)
 
@@ -114,3 +108,21 @@ data class NonNullToNonNullConverterSource(val uuid: Uuid)
 
 /** Used for testing converter mapping between non-nullable properties */
 data class NonNullToNonNullConverterTarget(val uuid: String)
+
+/** Used for testing inline default value mapping */
+data class InlineDefaultValueSource(val id: Int, val description: String?)
+
+/** Used for testing inline default value mapping */
+data class InlineDefaultValueTarget(val id: Int, val description: String)
+
+/** Used for testing runtime required default values */
+data class RuntimeRequiredDefaultValueSource(val id: Int)
+
+/** Used for testing runtime required default values */
+data class RuntimeRequiredDefaultValueTarget(val id: Int, val description: String)
+
+/** Used for testing runtime optional default values */
+data class RuntimeOptionalDefaultValueSource(val id: Int, val description: String?)
+
+/** Used for testing runtime optional default values */
+data class RuntimeOptionalDefaultValueTarget(val id: Int, val description: String)
