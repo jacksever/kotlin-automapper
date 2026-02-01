@@ -10,7 +10,7 @@ We recommend using the [Gradle Version Catalog](https://docs.gradle.org/current/
 
         ```toml
         [versions]
-        kotlin-automapper = "0.9.0"
+        kotlin-automapper = "0.10.0"
 
         [libraries]
         kotlin-automapper-processor = { group = "io.github.jacksever.automapper", name = "processor", version.ref = "kotlin-automapper" }
@@ -60,16 +60,16 @@ We recommend using the [Gradle Version Catalog](https://docs.gradle.org/current/
     kotlin {
         sourceSets {
             commonMain.dependencies {
-                implementation("io.github.jacksever.automapper:annotation:0.9.0")
+                implementation("io.github.jacksever.automapper:annotation:0.10.0")
             }
         }
     }
 
     // 2. Apply the processor to the targets you need
     dependencies {
-        add("kspJs", "io.github.jacksever.automapper:processor:0.9.0")
-        add("kspJvm", "io.github.jacksever.automapper:processor:0.9.0")
-        add("kspIosArm64", "io.github.jacksever.automapper:processor:0.9.0")
+        add("kspJs", "io.github.jacksever.automapper:processor:0.10.0")
+        add("kspJvm", "io.github.jacksever.automapper:processor:0.10.0")
+        add("kspIosArm64", "io.github.jacksever.automapper:processor:0.10.0")
         // etc. for your other targets
     }
     ```
@@ -78,7 +78,7 @@ We recommend using the [Gradle Version Catalog](https://docs.gradle.org/current/
 
     ```kotlin
     dependencies {
-        implementation("io.github.jacksever.automapper:annotation:0.9.0")
-        ksp("io.github.jacksever.automapper:processor:0.9.0")
+        implementation("io.github.jacksever.automapper:annotation:0.10.0")
+        ksp("io.github.jacksever.automapper:processor:0.10.0")
     }
     ```
