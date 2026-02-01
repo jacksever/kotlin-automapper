@@ -50,20 +50,11 @@ internal class EnumMapperBuilder(
      */
     override fun buildConversion(from: KSClassDeclaration, to: KSClassDeclaration): CodeBlock =
         buildCodeBlock {
-            val fromEntries = from.declarations
-                .filterIsInstance<KSClassDeclaration>()
-                .filter { declaration -> declaration.classKind == ClassKind.ENUM_ENTRY }
-                .map { entry -> entry.simpleName.asString() }
-                .toSet()
+            val fromEntries = from.enumEntryNames()
+            val toEntries = to.enumEntryNames()
 
-            val toEntries = to.declarations
-                .filterIsInstance<KSClassDeclaration>()
-                .filter { declaration -> declaration.classKind == ClassKind.ENUM_ENTRY }
-                .map { entry -> entry.simpleName.asString() }
-                .toSet()
-
-            val customMappings = propertyMappings
-                .associate { property -> property.from to property.to }
+            val customMappings =
+                propertyMappings.associate { property -> property.from to property.to }
 
             beginControlFlow(controlFlow = "return when (this)")
             fromEntries.forEach { sourceEntryName ->
@@ -93,4 +84,13 @@ internal class EnumMapperBuilder(
             }
             endControlFlow()
         }
+
+    /**
+     * Retrieves the names of all enum entries declared within this class declaration
+     */
+    private fun KSClassDeclaration.enumEntryNames(): Set<String> = declarations
+        .filterIsInstance<KSClassDeclaration>()
+        .filter { declaration -> declaration.classKind == ClassKind.ENUM_ENTRY }
+        .map { entry -> entry.simpleName.asString() }
+        .toSet()
 }

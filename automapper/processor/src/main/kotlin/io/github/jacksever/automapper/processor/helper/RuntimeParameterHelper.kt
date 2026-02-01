@@ -43,7 +43,7 @@ internal interface RuntimeParameterHelper {
 }
 
 /**
- * Implementation of [RuntimeParameterHelper]
+ * This class handles the logic for adding parameters to the generated mapper function
  */
 internal class RuntimeParameterHelperImpl(
     private val logger: KSPLogger,
@@ -96,14 +96,6 @@ internal class RuntimeParameterHelperImpl(
                 }
 
                 DefaultValueSource.PARAMETER_WITH_DEFAULT -> {
-                    if (defaultValue.value.isEmpty()) {
-                        logger.error(
-                            message = "DefaultValue with RUNTIME_OPTIONAL mode for property '$propertyName' must have a non-empty 'value'",
-                            symbol = definition.target
-                        )
-                        return@forEach
-                    }
-
                     funSpecBuilder.addParameter(
                         ParameterSpec.builder(name = propertyName, type = paramType)
                             .defaultValue(

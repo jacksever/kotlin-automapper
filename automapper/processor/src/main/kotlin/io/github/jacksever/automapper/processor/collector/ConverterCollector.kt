@@ -65,6 +65,9 @@ internal class ConverterCollectorImpl(
             .toList()
     }
 
+    /**
+     * Scans a given [KSClassDeclaration] for functions annotated with `@AutoConverter`
+     */
     private fun collectFromConverterClass(converterClass: KSClassDeclaration): Sequence<ConverterDefinition> =
         converterClass
             .getAllFunctions()
@@ -74,6 +77,13 @@ internal class ConverterCollectorImpl(
                 validateAndBuildConverter(function = function)
             }
 
+    /**
+     * Validates a function annotated with `@AutoConverter` and builds a [ConverterDefinition] if it's valid
+     *
+     * A valid converter function must:
+     * 1. Have exactly one parameter (the source type)
+     * 2. Have a non-Unit return type (the target type)
+     */
     private fun validateAndBuildConverter(function: KSFunctionDeclaration): ConverterDefinition? {
         val params = function.parameters
         val returnType = function.returnType?.resolve()
@@ -89,15 +99,14 @@ internal class ConverterCollectorImpl(
 
         val fromType = params[0].type.resolve()
 
-        logger.info(
-            message = "Found converter: ${function.qualifiedName?.asString()} " +
-                    "from ${fromType.declaration.simpleName.asString()} " +
-                    "to ${returnType.declaration.simpleName.asString()}"
-        )
+        logger.info(message = "Found converter: ${function.qualifiedName?.asString()} from ${fromType.declaration.simpleName.asString()} to ${returnType.declaration.simpleName.asString()}")
 
         return ConverterDefinition(from = fromType, to = returnType, function = function)
     }
 
+    /**
+     * Checks if a function is annotated with [AutoConverter]
+     */
     private fun KSFunctionDeclaration.hasAutoConverterAnnotation(): Boolean =
         annotations.any { annotation ->
             annotation.shortName.asString() == AutoConverter::class.simpleName

@@ -29,21 +29,29 @@ import com.squareup.kotlinpoet.CodeBlock
 internal object ObjectConverter {
 
     /**
-     * Attempts to generate a recursive mapping call for object types
+     * Generates a recursive mapping call for custom object types
      */
     fun getConversion(sourceType: KSType, targetType: KSType): CodeBlock {
-        val sourceDeclaration = sourceType.declaration
-        val targetDeclaration = targetType.declaration
+        val sourceDeclaration = sourceType.declaration as? KSClassDeclaration ?: return EMPTY
+        val targetDeclaration = targetType.declaration as? KSClassDeclaration ?: return EMPTY
 
-        if (sourceDeclaration is KSClassDeclaration && targetDeclaration is KSClassDeclaration) {
-            val sourcePkg = sourceDeclaration.packageName.asString()
-            val targetPkg = targetDeclaration.packageName.asString()
-
-            if (!sourcePkg.startsWith(prefix = "kotlin") && !targetPkg.startsWith(prefix = "kotlin")) {
-                return CodeBlock.of(".as${targetDeclaration.simpleName.asString()}()")
-            }
+        if (sourceDeclaration.isFrameworkType() || targetDeclaration.isFrameworkType()) {
+            return EMPTY
         }
 
-        return CodeBlock.of("")
+        return CodeBlock.of(".as${targetDeclaration.simpleName.asString()}()")
     }
+
+    /**
+     * An empty conversion expression
+     *
+     * Used as a default or fallback when no specific conversion is needed
+     */
+    private val EMPTY = CodeBlock.of("")
+
+    /**
+     * Checks if a given KSP type belongs to a common framework package (e.g., "kotlin")
+     */
+    private fun KSClassDeclaration.isFrameworkType(): Boolean =
+        packageName.asString().startsWith(prefix = "kotlin")
 }
