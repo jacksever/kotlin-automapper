@@ -38,8 +38,7 @@ jobs:
         run: ./gradlew --stop
 
   scanning:
-    depends_on:
-      - build
+    needs: [build]
     runs-on: ubuntu-latest
     name: Analyze (${{ matrix.language }})
 
@@ -90,5 +89,5 @@ jobs:
 
       # Gradle Daemon Cleanup
       - name: Gradle Daemon Cleanup
-        if: always()
+        if: always() && matrix.language == 'kotlin'
         run: ./gradlew --stop
