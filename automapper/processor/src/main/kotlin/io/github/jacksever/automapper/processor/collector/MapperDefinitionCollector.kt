@@ -23,10 +23,10 @@ import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import io.github.jacksever.automapper.annotation.DefaultValue
 import io.github.jacksever.automapper.annotation.DefaultValueSource
 import io.github.jacksever.automapper.annotation.PropertyMapping
-import io.github.jacksever.automapper.processor.extenstion.booleanArg
-import io.github.jacksever.automapper.processor.extenstion.enumArg
-import io.github.jacksever.automapper.processor.extenstion.getAnnotations
-import io.github.jacksever.automapper.processor.extenstion.stringArg
+import io.github.jacksever.automapper.processor.extension.booleanArg
+import io.github.jacksever.automapper.processor.extension.enumArg
+import io.github.jacksever.automapper.processor.extension.getAnnotations
+import io.github.jacksever.automapper.processor.extension.stringArg
 import io.github.jacksever.automapper.processor.model.ConverterDefinition
 import io.github.jacksever.automapper.processor.model.MapperDefinition
 
