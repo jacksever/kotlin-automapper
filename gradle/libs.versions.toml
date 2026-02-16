@@ -20,6 +20,12 @@ com-squareup-kotlinpoet = { module = "com.squareup:kotlinpoet", version.ref = "c
 com-squareup-kotlinpoet-ksp = { module = "com.squareup:kotlinpoet-ksp", version.ref = "com-squareup-kotlinpoet" }
 google-devtools-ksp-processor-api = { module = "com.google.devtools.ksp:symbol-processing-api", version.ref = "com-google-ksp" }
 
+# region Gradle plugins
+gradlePlugin-kotlin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "org-jetbrains-kotlin" }
+gradlePlugin-ksp = { group = "com.google.devtools.ksp", name = "com.google.devtools.ksp.gradle.plugin", version.ref = "com-google-ksp" }
+gradlePlugin-mavenPublish = { module = "com.vanniktech:gradle-maven-publish-plugin", version.ref = "com-vanniktech-maven-publish" }
+# endregion
+
 [plugins]
 com-google-ksp = { id = "com.google.devtools.ksp", version.ref = "com-google-ksp" }
 org-jetbrains-kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "org-jetbrains-kotlin" }
