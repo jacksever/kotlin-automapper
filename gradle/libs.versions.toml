@@ -1,6 +1,6 @@
 [versions]
 # region Kotlin
-org-jetbrains-kotlin = "2.3.0"
+org-jetbrains-kotlin = "2.3.10"
 # endregion
 
 # region Google
