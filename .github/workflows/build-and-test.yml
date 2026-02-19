@@ -35,8 +35,3 @@ jobs:
       # Runs the main check task to compile, test, and verify the project
       - name: Run Tests & Quality Checks
         run: ./gradlew check
-
-      # Gradle Daemon Cleanup
-      - name: Gradle Daemon Cleanup
-        if: always()
-        run: ./gradlew --stop
