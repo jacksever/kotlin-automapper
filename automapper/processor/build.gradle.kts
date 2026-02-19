@@ -1,13 +1,16 @@
 plugins {
     kotlin("jvm")
+    id("kotlin.automapper")
     id("kotlin.automapper.publish")
 }
 
-automapperArtifact {
-    artifactId = "processor"
-    name = "Kotlin AutoMapper Processor"
-    description =
-        "The KSP processor for Kotlin AutoMapper, which generates mapping extension functions"
+automapper {
+    artifact {
+        id = "processor"
+        name = "Kotlin AutoMapper Processor"
+        description =
+            "The KSP processor for Kotlin AutoMapper, which generates mapping extension functions"
+    }
 }
 
 dependencies {

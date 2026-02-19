@@ -16,30 +16,28 @@
 
 package io.github.jacksever.convention
 
+import org.gradle.api.Action
 import org.gradle.api.model.ObjectFactory
-import org.gradle.api.provider.Property
-import org.gradle.kotlin.dsl.property
+import org.gradle.kotlin.dsl.newInstance
 import javax.inject.Inject
 
 /**
- * Describes the published Kotlin Automapper artifact
+ * Root DSL extension for configuring the Kotlin AutoMapper Gradle plugin
  *
- * This extension defines metadata of the Kotlin Automapper library that is used to configure Maven coordinates and POM information
+ * This extension serves as the main entry point for all AutoMapper-specific
+ * configuration within a module
  */
-abstract class AutomapperArtifactExtension @Inject constructor(objects: ObjectFactory) {
+abstract class AutomapperExtension @Inject constructor(objects: ObjectFactory) {
 
     /**
-     * Artifact identifier used in published coordinates
+     * Metadata describing the published AutoMapper artifact
      */
-    val id: Property<String> = objects.property<String>()
+    val artifact: AutomapperArtifactExtension = objects.newInstance<AutomapperArtifactExtension>()
 
     /**
-     * Display name of the library
+     * Configures the published artifact metadata
      */
-    val name: Property<String> = objects.property<String>()
-
-    /**
-     * Short textual description of the library
-     */
-    val description: Property<String> = objects.property<String>()
+    fun artifact(action: Action<AutomapperArtifactExtension>) {
+        action.execute(artifact)
+    }
 }

@@ -1,5 +1,5 @@
 import com.vanniktech.maven.publish.MavenPublishBaseExtension
-import io.github.jacksever.convention.AutomapperArtifactExtension
+import io.github.jacksever.convention.AutomapperExtension
 
 plugins {
     id("com.vanniktech.maven.publish")
@@ -8,20 +8,19 @@ plugins {
 group = "io.github.jacksever.automapper"
 version = "0.10.0"
 
-val automapperArtifactExt =
-    project.extensions.create<AutomapperArtifactExtension>(name = "automapperArtifact")
+val artifact = project.extensions.getByType<AutomapperExtension>().artifact
 
 afterEvaluate {
     configure<MavenPublishBaseExtension> {
         coordinates(
             groupId = project.group.toString(),
-            artifactId = automapperArtifactExt.artifactId.orNull,
+            artifactId = artifact.id.orNull,
             version = project.version.toString()
         )
 
         pom {
-            name.set(automapperArtifactExt.name.orNull)
-            description.set(automapperArtifactExt.description.orNull)
+            name.set(artifact.name.orNull)
+            description.set(artifact.description.orNull)
             inceptionYear.set("2025")
             url.set("https://github.com/jacksever/kotlin-automapper")
 

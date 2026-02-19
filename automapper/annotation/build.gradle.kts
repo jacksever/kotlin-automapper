@@ -2,6 +2,7 @@ import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 
 plugins {
     alias(libs.plugins.org.jetbrains.kotlin.multiplatform)
+    id("kotlin.automapper")
     id("kotlin.automapper.publish")
 }
 
@@ -52,9 +53,11 @@ kotlin {
     linuxArm64()
 }
 
-automapperArtifact {
-    artifactId = "annotation"
-    name = "Kotlin AutoMapper Annotation"
-    description =
-        "Annotations for the Kotlin AutoMapper KSP library, used to define mapping modules and functions"
+automapper {
+    artifact {
+        id = "annotation"
+        name = "Kotlin AutoMapper Annotation"
+        description =
+            "Annotations for the Kotlin AutoMapper KSP library, used to define mapping modules and functions"
+    }
 }
