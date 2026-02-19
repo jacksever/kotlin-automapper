@@ -1,5 +1,3 @@
 plugins {
-    alias(libs.plugins.org.jetbrains.kotlin.jvm) apply false
-    alias(libs.plugins.org.jetbrains.kotlin.multiplatform) apply false
-    alias(libs.plugins.com.google.ksp) apply false
+    /* All plugins are used in the build-logic module */
 }

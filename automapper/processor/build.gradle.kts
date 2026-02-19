@@ -1,6 +1,6 @@
 plugins {
-    kotlin("jvm")
     id("kotlin.automapper")
+    id("kotlin.automapper.jvm")
     id("kotlin.automapper.publish")
 }
 
