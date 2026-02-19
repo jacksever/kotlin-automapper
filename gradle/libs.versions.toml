@@ -24,9 +24,6 @@ google-devtools-ksp-processor-api = { group = "com.google.devtools.ksp", name = 
 gradlePlugin-kotlin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "org-jetbrains-kotlin" }
 gradlePlugin-ksp = { group = "com.google.devtools.ksp", name = "com.google.devtools.ksp.gradle.plugin", version.ref = "com-google-ksp" }
 gradlePlugin-mavenPublish = { group = "com.vanniktech", name = "gradle-maven-publish-plugin", version.ref = "com-vanniktech-maven-publish" }
+gradlePlugin-kotlinJvm = { group = "org.jetbrains.kotlin.jvm", name = "org.jetbrains.kotlin.jvm.gradle.plugin", version.ref = "org-jetbrains-kotlin" }
+gradlePlugin-kotlinMultiplatform = { group = "org.jetbrains.kotlin.multiplatform", name = "org.jetbrains.kotlin.multiplatform.gradle.plugin", version.ref = "org-jetbrains-kotlin" }
 # endregion
-
-[plugins]
-com-google-ksp = { id = "com.google.devtools.ksp", version.ref = "com-google-ksp" }
-org-jetbrains-kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "org-jetbrains-kotlin" }
-org-jetbrains-kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "org-jetbrains-kotlin" }

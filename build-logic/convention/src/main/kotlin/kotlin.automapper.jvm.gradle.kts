@@ -14,6 +14,6 @@
  * limitations under the License.
  */
 
-import io.github.jacksever.convention.AutomapperExtension
-
-project.extensions.create<AutomapperExtension>(name = "automapper")
+plugins {
+    id("org.jetbrains.kotlin.jvm")
+}
