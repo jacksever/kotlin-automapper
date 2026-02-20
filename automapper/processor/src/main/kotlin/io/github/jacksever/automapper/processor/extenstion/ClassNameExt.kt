@@ -23,4 +23,5 @@ import com.squareup.kotlinpoet.ClassName
  *
  * For a nested class like `Outer.Inner`, this will return "OuterInner"
  */
-internal fun ClassName.toJoinedSimpleName(): String = simpleNames.joinToString(separator = "")
+internal fun ClassName.toJoinedSimpleName(): String =
+    simpleNames.takeLast(n = 2).joinToString(separator = "")
