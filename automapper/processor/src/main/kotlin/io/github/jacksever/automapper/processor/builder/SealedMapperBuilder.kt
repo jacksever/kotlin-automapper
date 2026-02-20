@@ -109,7 +109,12 @@ internal class SealedMapperBuilder(
 
                     add("is %T -> %T(\n", source.toClassName(), targetSub.toClassName())
                     indent()
-                    params.forEach { param -> addStatement("%L,", param) }
+                    params.forEach { param ->
+                        if (param.isNotEmpty()) {
+                            add(param)
+                            add(",\n")
+                        }
+                    }
                     unindent()
                     add(")\n")
                 }

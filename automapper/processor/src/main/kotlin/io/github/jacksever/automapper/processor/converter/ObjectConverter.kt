@@ -19,6 +19,8 @@ package io.github.jacksever.automapper.processor.converter
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSType
 import com.squareup.kotlinpoet.CodeBlock
+import com.squareup.kotlinpoet.ksp.toClassName
+import io.github.jacksever.automapper.processor.extenstion.toJoinedSimpleName
 
 /**
  * A helper object that provides conversion expressions for mapping between different object types
@@ -39,7 +41,7 @@ internal object ObjectConverter {
             return EMPTY
         }
 
-        return CodeBlock.of(".as${targetDeclaration.simpleName.asString()}()")
+        return CodeBlock.of(".as${targetType.toClassName().toJoinedSimpleName()}()")
     }
 
     /**

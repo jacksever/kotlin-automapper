@@ -20,8 +20,14 @@ import io.github.jacksever.automapper.annotation.AutoMapper
 import io.github.jacksever.automapper.annotation.AutoMapperModule
 import io.github.jacksever.automapper.annotation.DefaultValue
 import io.github.jacksever.automapper.annotation.PropertyMapping
+import io.github.jacksever.automapper.sample.model.Attribute
+import io.github.jacksever.automapper.sample.model.AttributeEntity
+import io.github.jacksever.automapper.sample.model.BaseMeasurement
 import io.github.jacksever.automapper.sample.model.ComplexSealedSource
 import io.github.jacksever.automapper.sample.model.ComplexSealedTarget
+import io.github.jacksever.automapper.sample.model.DetailedAttribute
+import io.github.jacksever.automapper.sample.model.Measurement
+import io.github.jacksever.automapper.sample.model.MeasurementEntity
 import io.github.jacksever.automapper.sample.model.NestedSealedSource
 import io.github.jacksever.automapper.sample.model.NestedSealedTarget
 import io.github.jacksever.automapper.sample.model.SealedWithDefaultSource
@@ -35,10 +41,19 @@ import io.github.jacksever.automapper.sample.model.TargetWithDefaultState
 internal interface SealedClassTestMapperModule {
 
     @AutoMapper
+    fun attributeMapper(from: Attribute): AttributeEntity
+
+    @AutoMapper
     fun simpleMapper(from: SimpleSealedSource): SimpleSealedTarget
 
     @AutoMapper
-    fun nestedMapper(source: NestedSealedSource): NestedSealedTarget
+    fun nestedMapper(from: NestedSealedSource): NestedSealedTarget
+
+    @AutoMapper
+    fun measurementEntityMapper(from: MeasurementEntity): Measurement.Attributed
+
+    @AutoMapper
+    fun attributeStateMapper(status: DetailedAttribute.State): AttributeEntity.DetailedEntity.State
 
     @AutoMapper(
         reversible = false,

@@ -21,6 +21,7 @@ import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSType
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.buildCodeBlock
+import com.squareup.kotlinpoet.ksp.toClassName
 import io.github.jacksever.automapper.annotation.DefaultValue
 import io.github.jacksever.automapper.annotation.DefaultValueSource.INLINE
 import io.github.jacksever.automapper.annotation.DefaultValueSource.PARAMETER
@@ -32,6 +33,7 @@ import io.github.jacksever.automapper.processor.converter.PrimitiveConverter
 import io.github.jacksever.automapper.processor.extenstion.asMemberName
 import io.github.jacksever.automapper.processor.extenstion.isAssignableConsideringNullability
 import io.github.jacksever.automapper.processor.formatter.DefaultValueFormatter.format
+import io.github.jacksever.automapper.processor.logger.FailableMappingLogger
 import io.github.jacksever.automapper.processor.model.ConverterDefinition
 
 /**
@@ -95,7 +97,7 @@ internal object ParameterHelper {
                     val sourceType = sourceProperty.type.resolve()
                     val targetType = targetParameter.type.resolve()
 
-                    // Explicit custom converter has highest priority
+                    // Explicit custom converter has the highest priority
                     val explicitConverter = findConverter(
                         logger = logger,
                         to = targetType,
@@ -185,13 +187,52 @@ internal object ParameterHelper {
                 }
 
                 else -> {
-                    logger.error(
-                        message = buildString {
-                            append("Cannot map property '$targetParameterName' for ${targetClass.qualifiedName?.asString()}. ")
-                            append("No matching property found in ${sourceClass.qualifiedName?.asString()} and no default value is provided")
-                        },
-                        symbol = targetParameter
-                    )
+                    runCatching {
+                        val targetParameterType = targetParameter.type.resolve()
+                        val targetParameterClass =
+                            targetParameterType.declaration as? KSClassDeclaration
+                                ?: error("Parameter is not a class, cannot be mapped recursively")
+
+                        if (targetParameterClass.primaryConstructor == null) {
+                            error("Nested class ${targetParameterClass.simpleName.asString()} has no primary constructor")
+                        }
+
+                        val mappingLogger = FailableMappingLogger(delegate = logger)
+                        val nestedParameters = buildConstructorParameters(
+                            logger = mappingLogger,
+                            converters = converters,
+                            sourceClass = sourceClass,
+                            defaultValues = emptyList(),
+                            propertyMappings = emptyList(),
+                            targetClass = targetParameterClass,
+                        )
+
+                        buildCodeBlock {
+                            add(
+                                "%L = %T(\n",
+                                targetParameterName,
+                                targetParameterClass.toClassName()
+                            )
+                            indent()
+                            nestedParameters.forEach { param ->
+                                if (param.isNotEmpty()) {
+                                    addStatement("%L,", param)
+                                }
+                            }
+                            unindent()
+                            add(")")
+                        }
+                    }
+                        .onSuccess { mapping -> add(mapping) }
+                        .onFailure {
+                            logger.error(
+                                message = buildString {
+                                    append("Cannot map property '$targetParameterName' for ${targetClass.qualifiedName?.asString()}. ")
+                                    append("No matching property found in ${sourceClass.qualifiedName?.asString()} and no default value is provided")
+                                },
+                                symbol = targetParameter
+                            )
+                        }
                 }
             }
         }
