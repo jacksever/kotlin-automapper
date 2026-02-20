@@ -17,6 +17,7 @@
 package io.github.jacksever.automapper.processor.helper
 
 import com.google.devtools.ksp.processing.KSPLogger
+import com.google.devtools.ksp.symbol.ClassKind
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSType
 import com.squareup.kotlinpoet.CodeBlock
@@ -30,6 +31,8 @@ import io.github.jacksever.automapper.annotation.PropertyMapping
 import io.github.jacksever.automapper.processor.converter.CollectionConverter
 import io.github.jacksever.automapper.processor.converter.ObjectConverter
 import io.github.jacksever.automapper.processor.converter.PrimitiveConverter
+import io.github.jacksever.automapper.processor.exception.MappingException
+import io.github.jacksever.automapper.processor.exception.RecursiveMappingException
 import io.github.jacksever.automapper.processor.extenstion.asMemberName
 import io.github.jacksever.automapper.processor.extenstion.isAssignableConsideringNullability
 import io.github.jacksever.automapper.processor.formatter.DefaultValueFormatter.format
@@ -69,21 +72,13 @@ internal object ParameterHelper {
             .associateBy { property -> property.simpleName.asString() }
         val defaultValuesByName = defaultValues.associateBy { value -> value.property }
 
-        if (targetConstructor == null) {
-            logger.error(
-                message = "Target class ${targetClass.simpleName.asString()} must have a primary constructor",
-                symbol = targetClass
-            )
-            return@buildList
+        checkNotNull(value = targetConstructor) {
+            "Target class ${targetClass.simpleName.asString()} must have a primary constructor"
         }
 
         targetConstructor.parameters.forEach { targetParameter ->
-            val targetParameterName = targetParameter.name?.asString() ?: run {
-                logger.error(
-                    message = "Unnamed constructor parameter in ${targetClass.simpleName.asString()}",
-                    symbol = targetParameter
-                )
-                return@forEach
+            val targetParameterName = checkNotNull(value = targetParameter.name?.asString()) {
+                "Unnamed constructor parameter in ${targetClass.simpleName.asString()}"
             }
 
             val mapping =
@@ -187,52 +182,62 @@ internal object ParameterHelper {
                 }
 
                 else -> {
-                    runCatching {
-                        val targetParameterType = targetParameter.type.resolve()
-                        val targetParameterClass =
-                            targetParameterType.declaration as? KSClassDeclaration
-                                ?: error("Parameter is not a class, cannot be mapped recursively")
+                    // If no direct mapping is found, attempt recursive mapping for complex objects
+                    val targetParameterType = targetParameter.type.resolve()
+                    val targetParameterClass =
+                        targetParameterType.declaration as? KSClassDeclaration
 
-                        if (targetParameterClass.primaryConstructor == null) {
-                            error("Nested class ${targetParameterClass.simpleName.asString()} has no primary constructor")
-                        }
-
-                        val mappingLogger = FailableMappingLogger(delegate = logger)
-                        val nestedParameters = buildConstructorParameters(
-                            logger = mappingLogger,
-                            converters = converters,
-                            sourceClass = sourceClass,
-                            defaultValues = emptyList(),
-                            propertyMappings = emptyList(),
-                            targetClass = targetParameterClass,
-                        )
-
-                        buildCodeBlock {
-                            add(
-                                "%L = %T(\n",
-                                targetParameterName,
-                                targetParameterClass.toClassName()
+                    if (targetParameterClass.isEligibleForRecursiveMapping()) {
+                        runCatching {
+                            val mappingLogger = FailableMappingLogger(delegate = logger)
+                            val nestedParameters = buildConstructorParameters(
+                                logger = mappingLogger,
+                                converters = converters,
+                                sourceClass = sourceClass,
+                                defaultValues = emptyList(),
+                                propertyMappings = emptyList(),
+                                targetClass = requireNotNull(targetParameterClass),
                             )
-                            indent()
-                            nestedParameters.forEach { param ->
-                                if (param.isNotEmpty()) {
-                                    addStatement("%L,", param)
+
+                            buildCodeBlock {
+                                add(
+                                    "%L = %T(\n",
+                                    targetParameterName,
+                                    targetParameterClass.toClassName()
+                                )
+                                indent()
+                                nestedParameters.forEach { param ->
+                                    if (param.isNotEmpty()) {
+                                        addStatement("%L,", param)
+                                    }
+                                }
+                                unindent()
+                                add(")")
+                            }
+                        }.onSuccess { mapping ->
+                            add(mapping)
+                        }.onFailure { throwable ->
+                            val errorMessage = buildString {
+                                append("Cannot map property '$targetParameterName' for ${targetClass.qualifiedName?.asString()}. ")
+
+                                when (throwable) {
+                                    is RecursiveMappingException -> append("Recursive mapping failed. See the previous error for details")
+                                    else -> append("Recursive mapping failed: ${throwable.message}")
                                 }
                             }
-                            unindent()
-                            add(")")
+                            logger.error(message = errorMessage, symbol = targetParameter)
+
+                            throw MappingException(message = errorMessage, cause = throwable)
                         }
+                    } else {
+                        val errorMessage = buildString {
+                            append("Cannot map property '$targetParameterName' for ${targetClass.qualifiedName?.asString()}. ")
+                            append("No matching property found in ${sourceClass.qualifiedName?.asString()} and no default value is provided")
+                        }
+                        logger.error(message = errorMessage, symbol = targetParameter)
+
+                        throw MappingException(message = errorMessage)
                     }
-                        .onSuccess { mapping -> add(mapping) }
-                        .onFailure {
-                            logger.error(
-                                message = buildString {
-                                    append("Cannot map property '$targetParameterName' for ${targetClass.qualifiedName?.asString()}. ")
-                                    append("No matching property found in ${sourceClass.qualifiedName?.asString()} and no default value is provided")
-                                },
-                                symbol = targetParameter
-                            )
-                        }
                 }
             }
         }
@@ -437,4 +442,14 @@ internal object ParameterHelper {
      */
     private fun ConverterDefinition.isMoreSpecificThan(other: ConverterDefinition): Boolean =
         other.from.isAssignableFrom(that = from) && other.to.isAssignableFrom(that = to)
+
+    /**
+     * Checks if a class is eligible for recursive mapping
+     */
+    private fun KSClassDeclaration?.isEligibleForRecursiveMapping(): Boolean {
+        if (this == null) return false
+
+        return primaryConstructor != null && classKind == ClassKind.CLASS &&
+                !packageName.asString().startsWith(prefix = "kotlin")
+    }
 }
