@@ -35,3 +35,11 @@ jobs:
       # Runs the main check task to compile, test, and verify the project
       - name: Run Tests & Quality Checks
         run: ./gradlew check
+
+      # Checks the binary compatibility of the library's files
+      - name: Check Binary Compatibility
+        run: |
+          if ! ./gradlew checkLegacyAbi; then
+            echo "::error::This PR changes Kotlin AutoMapper's public API. Run './gradlew updateLegacyAbi' and commit the new ABI files"
+            exit 1
+          fi

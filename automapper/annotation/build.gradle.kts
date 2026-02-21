@@ -1,6 +1,7 @@
 plugins {
     id("kotlin.automapper")
     id("kotlin.automapper.publish")
+    id("kotlin.automapper.validation")
     id("kotlin.automapper.multiplatform")
 }
 
