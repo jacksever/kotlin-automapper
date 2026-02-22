@@ -33,8 +33,7 @@ jobs:
       - name: Update version in build files and docs
         run: |
           VERSION=${{ github.event.inputs.version }}
-          sed -i "s/^version = \".*\"/version = \"$VERSION\"/" automapper/processor/build.gradle.kts
-          sed -i "s/^version = \".*\"/version = \"$VERSION\"/" automapper/annotation/build.gradle.kts
+          sed -i "s/^version = \".*\"/version = \"$VERSION\"/" "build-logic/convention/src/main/kotlin/kotlin.automapper.publish.gradle.kts"
           sed -i "s/kotlin-automapper = \".*\"/kotlin-automapper = \"$VERSION\"/" docs/setup.md
           sed -i -r "s/(io\.github\.jacksever\.automapper:[^:]*:)[0-9]+\.[0-9]+\.[0-9]+(.*)/\1$VERSION\2/g" docs/setup.md
 
