@@ -1,0 +1,63 @@
+// Klib ABI Dump
+// Targets: [iosArm64, iosSimulatorArm64, js, linuxArm64, linuxX64, macosArm64, tvosArm64, tvosSimulatorArm64, wasmJs, wasmWasi, watchosArm32, watchosArm64, watchosDeviceArm64, watchosSimulatorArm64]
+// Rendering settings:
+// - Signature version: 2
+// - Show manifest properties: true
+// - Show declarations: true
+
+// Library unique name: <io.github.jacksever.automapper:annotation>
+open annotation class io.github.jacksever.automapper.annotation/AutoConverter : kotlin/Annotation { // io.github.jacksever.automapper.annotation/AutoConverter|null[0]
+    constructor <init>() // io.github.jacksever.automapper.annotation/AutoConverter.<init>|<init>(){}[0]
+}
+
+open annotation class io.github.jacksever.automapper.annotation/AutoMapper : kotlin/Annotation { // io.github.jacksever.automapper.annotation/AutoMapper|null[0]
+    constructor <init>(kotlin/Boolean = ..., kotlin/Array<kotlin.reflect/KClass<*>> = ..., kotlin/Array<io.github.jacksever.automapper.annotation/DefaultValue> = ..., kotlin/Array<io.github.jacksever.automapper.annotation/PropertyMapping> = ...) // io.github.jacksever.automapper.annotation/AutoMapper.<init>|<init>(kotlin.Boolean;kotlin.Array<kotlin.reflect.KClass<*>>;kotlin.Array<io.github.jacksever.automapper.annotation.DefaultValue>;kotlin.Array<io.github.jacksever.automapper.annotation.PropertyMapping>){}[0]
+
+    final val converters // io.github.jacksever.automapper.annotation/AutoMapper.converters|{}converters[0]
+        final fun <get-converters>(): kotlin/Array<kotlin.reflect/KClass<*>> // io.github.jacksever.automapper.annotation/AutoMapper.converters.<get-converters>|<get-converters>(){}[0]
+    final val defaultValues // io.github.jacksever.automapper.annotation/AutoMapper.defaultValues|{}defaultValues[0]
+        final fun <get-defaultValues>(): kotlin/Array<io.github.jacksever.automapper.annotation/DefaultValue> // io.github.jacksever.automapper.annotation/AutoMapper.defaultValues.<get-defaultValues>|<get-defaultValues>(){}[0]
+    final val propertyMappings // io.github.jacksever.automapper.annotation/AutoMapper.propertyMappings|{}propertyMappings[0]
+        final fun <get-propertyMappings>(): kotlin/Array<io.github.jacksever.automapper.annotation/PropertyMapping> // io.github.jacksever.automapper.annotation/AutoMapper.propertyMappings.<get-propertyMappings>|<get-propertyMappings>(){}[0]
+    final val reversible // io.github.jacksever.automapper.annotation/AutoMapper.reversible|{}reversible[0]
+        final fun <get-reversible>(): kotlin/Boolean // io.github.jacksever.automapper.annotation/AutoMapper.reversible.<get-reversible>|<get-reversible>(){}[0]
+}
+
+open annotation class io.github.jacksever.automapper.annotation/AutoMapperModule : kotlin/Annotation { // io.github.jacksever.automapper.annotation/AutoMapperModule|null[0]
+    constructor <init>(kotlin/Array<kotlin.reflect/KClass<*>> = ...) // io.github.jacksever.automapper.annotation/AutoMapperModule.<init>|<init>(kotlin.Array<kotlin.reflect.KClass<*>>){}[0]
+
+    final val converters // io.github.jacksever.automapper.annotation/AutoMapperModule.converters|{}converters[0]
+        final fun <get-converters>(): kotlin/Array<kotlin.reflect/KClass<*>> // io.github.jacksever.automapper.annotation/AutoMapperModule.converters.<get-converters>|<get-converters>(){}[0]
+}
+
+open annotation class io.github.jacksever.automapper.annotation/DefaultValue : kotlin/Annotation { // io.github.jacksever.automapper.annotation/DefaultValue|null[0]
+    constructor <init>(kotlin/String, kotlin/String = ..., io.github.jacksever.automapper.annotation/DefaultValueSource = ...) // io.github.jacksever.automapper.annotation/DefaultValue.<init>|<init>(kotlin.String;kotlin.String;io.github.jacksever.automapper.annotation.DefaultValueSource){}[0]
+
+    final val property // io.github.jacksever.automapper.annotation/DefaultValue.property|{}property[0]
+        final fun <get-property>(): kotlin/String // io.github.jacksever.automapper.annotation/DefaultValue.property.<get-property>|<get-property>(){}[0]
+    final val source // io.github.jacksever.automapper.annotation/DefaultValue.source|{}source[0]
+        final fun <get-source>(): io.github.jacksever.automapper.annotation/DefaultValueSource // io.github.jacksever.automapper.annotation/DefaultValue.source.<get-source>|<get-source>(){}[0]
+    final val value // io.github.jacksever.automapper.annotation/DefaultValue.value|{}value[0]
+        final fun <get-value>(): kotlin/String // io.github.jacksever.automapper.annotation/DefaultValue.value.<get-value>|<get-value>(){}[0]
+}
+
+open annotation class io.github.jacksever.automapper.annotation/PropertyMapping : kotlin/Annotation { // io.github.jacksever.automapper.annotation/PropertyMapping|null[0]
+    constructor <init>(kotlin/String, kotlin/String) // io.github.jacksever.automapper.annotation/PropertyMapping.<init>|<init>(kotlin.String;kotlin.String){}[0]
+
+    final val from // io.github.jacksever.automapper.annotation/PropertyMapping.from|{}from[0]
+        final fun <get-from>(): kotlin/String // io.github.jacksever.automapper.annotation/PropertyMapping.from.<get-from>|<get-from>(){}[0]
+    final val to // io.github.jacksever.automapper.annotation/PropertyMapping.to|{}to[0]
+        final fun <get-to>(): kotlin/String // io.github.jacksever.automapper.annotation/PropertyMapping.to.<get-to>|<get-to>(){}[0]
+}
+
+final enum class io.github.jacksever.automapper.annotation/DefaultValueSource : kotlin/Enum<io.github.jacksever.automapper.annotation/DefaultValueSource> { // io.github.jacksever.automapper.annotation/DefaultValueSource|null[0]
+    enum entry INLINE // io.github.jacksever.automapper.annotation/DefaultValueSource.INLINE|null[0]
+    enum entry PARAMETER // io.github.jacksever.automapper.annotation/DefaultValueSource.PARAMETER|null[0]
+    enum entry PARAMETER_WITH_DEFAULT // io.github.jacksever.automapper.annotation/DefaultValueSource.PARAMETER_WITH_DEFAULT|null[0]
+
+    final val entries // io.github.jacksever.automapper.annotation/DefaultValueSource.entries|#static{}entries[0]
+        final fun <get-entries>(): kotlin.enums/EnumEntries<io.github.jacksever.automapper.annotation/DefaultValueSource> // io.github.jacksever.automapper.annotation/DefaultValueSource.entries.<get-entries>|<get-entries>#static(){}[0]
+
+    final fun valueOf(kotlin/String): io.github.jacksever.automapper.annotation/DefaultValueSource // io.github.jacksever.automapper.annotation/DefaultValueSource.valueOf|valueOf#static(kotlin.String){}[0]
+    final fun values(): kotlin/Array<io.github.jacksever.automapper.annotation/DefaultValueSource> // io.github.jacksever.automapper.annotation/DefaultValueSource.values|values#static(){}[0]
+}
