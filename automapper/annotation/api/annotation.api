@@ -1,0 +1,34 @@
+public abstract interface annotation class io/github/jacksever/automapper/annotation/AutoConverter : java/lang/annotation/Annotation {
+}
+
+public abstract interface annotation class io/github/jacksever/automapper/annotation/AutoMapper : java/lang/annotation/Annotation {
+	public abstract fun converters ()[Ljava/lang/Class;
+	public abstract fun defaultValues ()[Lio/github/jacksever/automapper/annotation/DefaultValue;
+	public abstract fun propertyMappings ()[Lio/github/jacksever/automapper/annotation/PropertyMapping;
+	public abstract fun reversible ()Z
+}
+
+public abstract interface annotation class io/github/jacksever/automapper/annotation/AutoMapperModule : java/lang/annotation/Annotation {
+	public abstract fun converters ()[Ljava/lang/Class;
+}
+
+public abstract interface annotation class io/github/jacksever/automapper/annotation/DefaultValue : java/lang/annotation/Annotation {
+	public abstract fun property ()Ljava/lang/String;
+	public abstract fun source ()Lio/github/jacksever/automapper/annotation/DefaultValueSource;
+	public abstract fun value ()Ljava/lang/String;
+}
+
+public final class io/github/jacksever/automapper/annotation/DefaultValueSource : java/lang/Enum {
+	public static final field INLINE Lio/github/jacksever/automapper/annotation/DefaultValueSource;
+	public static final field PARAMETER Lio/github/jacksever/automapper/annotation/DefaultValueSource;
+	public static final field PARAMETER_WITH_DEFAULT Lio/github/jacksever/automapper/annotation/DefaultValueSource;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lio/github/jacksever/automapper/annotation/DefaultValueSource;
+	public static fun values ()[Lio/github/jacksever/automapper/annotation/DefaultValueSource;
+}
+
+public abstract interface annotation class io/github/jacksever/automapper/annotation/PropertyMapping : java/lang/annotation/Annotation {
+	public abstract fun from ()Ljava/lang/String;
+	public abstract fun to ()Ljava/lang/String;
+}
+

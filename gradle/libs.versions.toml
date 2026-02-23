@@ -1,6 +1,6 @@
 [versions]
 # region Kotlin
-org-jetbrains-kotlin = "2.3.0"
+org-jetbrains-kotlin = "2.3.10"
 # endregion
 
 # region Google
@@ -16,12 +16,14 @@ com-vanniktech-maven-publish = "0.36.0"
 # endregion
 
 [libraries]
-com-squareup-kotlinpoet = { module = "com.squareup:kotlinpoet", version.ref = "com-squareup-kotlinpoet" }
-com-squareup-kotlinpoet-ksp = { module = "com.squareup:kotlinpoet-ksp", version.ref = "com-squareup-kotlinpoet" }
-google-devtools-ksp-processor-api = { module = "com.google.devtools.ksp:symbol-processing-api", version.ref = "com-google-ksp" }
+com-squareup-kotlinpoet = { group = "com.squareup", name = "kotlinpoet", version.ref = "com-squareup-kotlinpoet" }
+com-squareup-kotlinpoet-ksp = { group = "com.squareup", name = "kotlinpoet-ksp", version.ref = "com-squareup-kotlinpoet" }
+google-devtools-ksp-processor-api = { group = "com.google.devtools.ksp", name = "symbol-processing-api", version.ref = "com-google-ksp" }
 
-[plugins]
-com-google-ksp = { id = "com.google.devtools.ksp", version.ref = "com-google-ksp" }
-org-jetbrains-kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "org-jetbrains-kotlin" }
-org-jetbrains-kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "org-jetbrains-kotlin" }
-com-vanniktech-maven-publish = { id = "com.vanniktech.maven.publish", version.ref = "com-vanniktech-maven-publish" }
+# region Gradle plugins
+gradlePlugin-kotlin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "org-jetbrains-kotlin" }
+gradlePlugin-ksp = { group = "com.google.devtools.ksp", name = "com.google.devtools.ksp.gradle.plugin", version.ref = "com-google-ksp" }
+gradlePlugin-mavenPublish = { group = "com.vanniktech", name = "gradle-maven-publish-plugin", version.ref = "com-vanniktech-maven-publish" }
+gradlePlugin-kotlinJvm = { group = "org.jetbrains.kotlin.jvm", name = "org.jetbrains.kotlin.jvm.gradle.plugin", version.ref = "org-jetbrains-kotlin" }
+gradlePlugin-kotlinMultiplatform = { group = "org.jetbrains.kotlin.multiplatform", name = "org.jetbrains.kotlin.multiplatform.gradle.plugin", version.ref = "org-jetbrains-kotlin" }
+# endregion

@@ -1,0 +1,68 @@
+# This workflow uses actions that are not certified by GitHub
+
+name: "CodeQL Scanning"
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  schedule:
+    - cron: '41 8 * * 3'
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    name: Analyze (${{ matrix.language }})
+    permissions:
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # GitHub Actions scanning
+          - language: actions
+            build-mode: none
+          # Kotlin scanning
+          - language: kotlin
+            build-mode: manual # Manually run build steps
+
+    steps:
+      # Checks out the repository code so the workflow can access it
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      # Sets up the specified Java version required by the project
+      - name: Setup JDK 21
+        if: matrix.language == 'kotlin'
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      # Sets up the Gradle for the project
+      - name: Setup Gradle
+        if: matrix.language == 'kotlin'
+        uses: gradle/actions/setup-gradle@v5
+        with:
+          cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
+
+      # Initializes the CodeQL tools for scanning
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+
+      # Runs the main build and check tasks to compile, test, and verify the project
+      - name: Run Tests & Quality Checks
+        if: matrix.language == 'kotlin'
+        run: ./gradlew build check --no-build-cache
+
+      # Performs CodeQL analysis and uploads the results
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:${{matrix.language}}"
