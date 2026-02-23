@@ -16,6 +16,10 @@
 
 package io.github.jacksever.automapper.sample.model
 
+import kotlin.time.Instant
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
+
 /** Used for a simple sealed class mapping test */
 sealed interface SimpleSealedSource {
 
@@ -96,4 +100,111 @@ sealed interface NestedSealedTarget {
 
         data class NestedChild(val name: String) : Nested
     }
+}
+
+/** Generic entity-layer model for an attribute */
+internal sealed interface AttributeEntity {
+
+    data object Default : AttributeEntity
+
+    data class External(val sourceName: String) : AttributeEntity
+
+    sealed interface DetailedEntity : AttributeEntity {
+        val id: String
+        val state: State
+        val address: String
+        val timestamp: Instant
+
+        data class TypeA(
+            override val id: String,
+            override val state: State,
+            override val address: String,
+            override val timestamp: Instant
+        ) : DetailedEntity
+
+        data class TypeB(
+            override val id: String,
+            override val state: State,
+            override val address: String,
+            override val timestamp: Instant
+        ) : DetailedEntity
+
+        enum class State {
+            ACTIVE,
+            INACTIVE,
+            UNKNOWN,
+        }
+    }
+}
+
+/** Generic entity-layer model for a measurement */
+internal data class MeasurementEntity(
+    val id: String,
+    val value: Int,
+    val timestamp: Instant,
+    val attribute: AttributeEntity,
+)
+
+/** Generic domain-layer model for an attribute */
+sealed interface Attribute {
+
+    data object Default : Attribute
+
+    data class External(val sourceName: String) : Attribute
+}
+
+/** Generic domain-layer model for a detailed attribute */
+sealed interface DetailedAttribute : Attribute {
+    val id: String
+    val state: State
+    val address: String
+    val timestamp: Instant
+
+    data class TypeA(
+        override val id: String,
+        override val state: State,
+        override val address: String,
+        override val timestamp: Instant
+    ) : DetailedAttribute
+
+    data class TypeB(
+        override val id: String,
+        override val state: State,
+        override val address: String,
+        override val timestamp: Instant
+    ) : DetailedAttribute
+
+    enum class State {
+        ACTIVE,
+        INACTIVE,
+        UNKNOWN,
+    }
+}
+
+/** A base interface for measurements in the domain layer */
+sealed interface BaseMeasurement {
+    val id: String
+    val timestamp: Instant
+
+    sealed interface WithAttribute : BaseMeasurement {
+
+        val attribute: Attribute
+    }
+}
+
+/** Generic domain-layer model for a measurement */
+sealed interface Measurement : BaseMeasurement {
+    val value: Int
+
+    @OptIn(ExperimentalUuidApi::class)
+    data class Base(
+        override val id: String = Uuid.random().toString(),
+        override val value: Int,
+        override val timestamp: Instant,
+    ) : Measurement
+
+    data class Attributed(
+        private val measurement: Base,
+        override val attribute: Attribute,
+    ) : Measurement by measurement, BaseMeasurement.WithAttribute
 }

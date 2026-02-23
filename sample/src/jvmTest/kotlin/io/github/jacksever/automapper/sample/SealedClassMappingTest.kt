@@ -17,12 +17,17 @@
 package io.github.jacksever.automapper.sample
 
 import io.github.jacksever.automapper.sample.mapper.asComplexSealedTarget
+import io.github.jacksever.automapper.sample.mapper.asMeasurementAttributed
+import io.github.jacksever.automapper.sample.mapper.asMeasurementEntity
 import io.github.jacksever.automapper.sample.mapper.asNestedSealedTarget
 import io.github.jacksever.automapper.sample.mapper.asSealedWithDefaultTarget
 import io.github.jacksever.automapper.sample.mapper.asSimpleSealedTarget
 import io.github.jacksever.automapper.sample.mapper.asTargetWithDefaultState
+import io.github.jacksever.automapper.sample.model.Attribute
+import io.github.jacksever.automapper.sample.model.AttributeEntity
 import io.github.jacksever.automapper.sample.model.ComplexSealedSource
 import io.github.jacksever.automapper.sample.model.ComplexSealedTarget
+import io.github.jacksever.automapper.sample.model.MeasurementEntity
 import io.github.jacksever.automapper.sample.model.NestedSealedSource
 import io.github.jacksever.automapper.sample.model.NestedSealedTarget
 import io.github.jacksever.automapper.sample.model.SealedWithDefaultSource
@@ -34,7 +39,9 @@ import io.github.jacksever.automapper.sample.model.TaskState
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import kotlin.time.Instant
 
 class SealedClassMappingTest {
 
@@ -120,5 +127,30 @@ class SealedClassMappingTest {
 
         assertIs<NestedSealedTarget.Nested.NestedChild>(value = targetNestedChild)
         assertEquals(expected = "test", actual = targetNestedChild.name)
+    }
+
+    @Test
+    fun `test complex nested sealed class mapping with delegation and custom converters`() {
+        // Given
+        val entity = MeasurementEntity(
+            id = "test-id",
+            value = 120,
+            timestamp = Instant.fromEpochSeconds(epochSeconds = 1672531200),
+            attribute = AttributeEntity.External(sourceName = "third-party-app")
+        )
+
+        // When
+        val domain = entity.asMeasurementAttributed()
+        val revertedEntity = domain.asMeasurementEntity()
+
+        // Then
+        assertNotNull(actual = domain)
+        assertIs<Attribute.External>(value = domain.attribute)
+        assertEquals(expected = entity.id, actual = domain.id)
+        assertEquals(expected = entity.value, actual = domain.value)
+        assertEquals(expected = entity.timestamp, actual = domain.timestamp)
+        assertEquals(expected = "third-party-app", actual = domain.attribute.sourceName)
+
+        assertEquals(expected = entity, actual = revertedEntity)
     }
 }

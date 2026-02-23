@@ -17,10 +17,12 @@
 package io.github.jacksever.automapper.processor.helper
 
 import com.google.devtools.ksp.processing.KSPLogger
+import com.google.devtools.ksp.symbol.ClassKind
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSType
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.buildCodeBlock
+import com.squareup.kotlinpoet.ksp.toClassName
 import io.github.jacksever.automapper.annotation.DefaultValue
 import io.github.jacksever.automapper.annotation.DefaultValueSource.INLINE
 import io.github.jacksever.automapper.annotation.DefaultValueSource.PARAMETER
@@ -29,9 +31,12 @@ import io.github.jacksever.automapper.annotation.PropertyMapping
 import io.github.jacksever.automapper.processor.converter.CollectionConverter
 import io.github.jacksever.automapper.processor.converter.ObjectConverter
 import io.github.jacksever.automapper.processor.converter.PrimitiveConverter
+import io.github.jacksever.automapper.processor.exception.MappingException
+import io.github.jacksever.automapper.processor.exception.RecursiveMappingException
 import io.github.jacksever.automapper.processor.extension.asMemberName
 import io.github.jacksever.automapper.processor.extension.isAssignableConsideringNullability
 import io.github.jacksever.automapper.processor.formatter.DefaultValueFormatter.format
+import io.github.jacksever.automapper.processor.logger.FailableMappingLogger
 import io.github.jacksever.automapper.processor.model.ConverterDefinition
 
 /**
@@ -67,21 +72,13 @@ internal object ParameterHelper {
             .associateBy { property -> property.simpleName.asString() }
         val defaultValuesByName = defaultValues.associateBy { value -> value.property }
 
-        if (targetConstructor == null) {
-            logger.error(
-                message = "Target class ${targetClass.simpleName.asString()} must have a primary constructor",
-                symbol = targetClass
-            )
-            return@buildList
+        checkNotNull(value = targetConstructor) {
+            "Target class ${targetClass.simpleName.asString()} must have a primary constructor"
         }
 
         targetConstructor.parameters.forEach { targetParameter ->
-            val targetParameterName = targetParameter.name?.asString() ?: run {
-                logger.error(
-                    message = "Unnamed constructor parameter in ${targetClass.simpleName.asString()}",
-                    symbol = targetParameter
-                )
-                return@forEach
+            val targetParameterName = checkNotNull(value = targetParameter.name?.asString()) {
+                "Unnamed constructor parameter in ${targetClass.simpleName.asString()}"
             }
 
             val mapping =
@@ -95,7 +92,7 @@ internal object ParameterHelper {
                     val sourceType = sourceProperty.type.resolve()
                     val targetType = targetParameter.type.resolve()
 
-                    // Explicit custom converter has highest priority
+                    // Explicit custom converter has the highest priority
                     val explicitConverter = findConverter(
                         logger = logger,
                         to = targetType,
@@ -185,13 +182,62 @@ internal object ParameterHelper {
                 }
 
                 else -> {
-                    logger.error(
-                        message = buildString {
+                    // If no direct mapping is found, attempt recursive mapping for complex objects
+                    val targetParameterType = targetParameter.type.resolve()
+                    val targetParameterClass =
+                        targetParameterType.declaration as? KSClassDeclaration
+
+                    if (targetParameterClass.isEligibleForRecursiveMapping()) {
+                        runCatching {
+                            val mappingLogger = FailableMappingLogger(delegate = logger)
+                            val nestedParameters = buildConstructorParameters(
+                                logger = mappingLogger,
+                                converters = converters,
+                                sourceClass = sourceClass,
+                                defaultValues = emptyList(),
+                                propertyMappings = emptyList(),
+                                targetClass = requireNotNull(targetParameterClass),
+                            )
+
+                            buildCodeBlock {
+                                add(
+                                    "%L = %T(\n",
+                                    targetParameterName,
+                                    targetParameterClass.toClassName()
+                                )
+                                indent()
+                                nestedParameters.forEach { param ->
+                                    if (param.isNotEmpty()) {
+                                        addStatement("%L,", param)
+                                    }
+                                }
+                                unindent()
+                                add(")")
+                            }
+                        }.onSuccess { mapping ->
+                            add(mapping)
+                        }.onFailure { throwable ->
+                            val errorMessage = buildString {
+                                append("Cannot map property '$targetParameterName' for ${targetClass.qualifiedName?.asString()}. ")
+
+                                when (throwable) {
+                                    is RecursiveMappingException -> append("Recursive mapping failed. See the previous error for details")
+                                    else -> append("Recursive mapping failed: ${throwable.message}")
+                                }
+                            }
+                            logger.error(message = errorMessage, symbol = targetParameter)
+
+                            throw MappingException(message = errorMessage, cause = throwable)
+                        }
+                    } else {
+                        val errorMessage = buildString {
                             append("Cannot map property '$targetParameterName' for ${targetClass.qualifiedName?.asString()}. ")
                             append("No matching property found in ${sourceClass.qualifiedName?.asString()} and no default value is provided")
-                        },
-                        symbol = targetParameter
-                    )
+                        }
+                        logger.error(message = errorMessage, symbol = targetParameter)
+
+                        throw MappingException(message = errorMessage)
+                    }
                 }
             }
         }
@@ -396,4 +442,14 @@ internal object ParameterHelper {
      */
     private fun ConverterDefinition.isMoreSpecificThan(other: ConverterDefinition): Boolean =
         other.from.isAssignableFrom(that = from) && other.to.isAssignableFrom(that = to)
+
+    /**
+     * Checks if a class is eligible for recursive mapping
+     */
+    private fun KSClassDeclaration?.isEligibleForRecursiveMapping(): Boolean {
+        if (this == null) return false
+
+        return primaryConstructor != null && classKind == ClassKind.CLASS &&
+                !packageName.asString().startsWith(prefix = "kotlin")
+    }
 }

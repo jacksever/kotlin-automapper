@@ -62,6 +62,7 @@ nav:
       - 'Property Mapping': 'advanced/property-mapping.md'
       - 'Default Values': 'advanced/default-values.md'
       - 'Custom Type Conversion': 'advanced/custom-type-conversion.md'
+      - 'Nested Object Mapping': 'advanced/nested-object-mapping.md'
   - 'Contributing': 'contributing.md'
   - 'Code of Conduct': 'code_of_conduct.md'
 

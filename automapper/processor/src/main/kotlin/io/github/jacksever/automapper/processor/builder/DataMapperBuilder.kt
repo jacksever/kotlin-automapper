@@ -63,7 +63,12 @@ internal class DataMapperBuilder(
 
             add("return %T(\n", to.toClassName())
             indent()
-            params.forEach { param -> addStatement("%L,", param) }
+            params.forEach { param ->
+                if (param.isNotEmpty()) {
+                    add(param)
+                    add(",\n")
+                }
+            }
             unindent()
             add(")")
         }
