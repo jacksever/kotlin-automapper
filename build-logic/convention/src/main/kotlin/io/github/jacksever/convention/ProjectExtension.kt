@@ -26,3 +26,23 @@ import org.gradle.kotlin.dsl.getByType
  */
 val Project.libs
     get(): VersionCatalog = extensions.getByType<VersionCatalogsExtension>().named("libs")
+
+/**
+ * Returns the project group identifier
+ */
+val Project.groupId: String
+    get() = stringProperty(name = "GROUP")
+
+/**
+ * Returns the project version
+ */
+val Project.versionName: String
+    get() = stringProperty(name = "VERSION_NAME")
+
+/**
+ * Returns the value of a Gradle project property with the given [name]
+ */
+private fun Project.stringProperty(
+    name: String,
+    default: () -> String = { error("Unknown property: $name") },
+): String = (properties[name] as String?) ?: default()
