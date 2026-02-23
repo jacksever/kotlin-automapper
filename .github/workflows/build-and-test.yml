@@ -11,6 +11,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       # Checks out the repository code so the workflow can access it
@@ -27,12 +29,17 @@ jobs:
       # Sets up the Gradle for the project
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v5
+        with:
+          cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
 
       # Runs the main check task to compile, test, and verify the project
       - name: Run Tests & Quality Checks
         run: ./gradlew check
 
-      # Gradle Daemon Cleanup
-      - name: Gradle Daemon Cleanup
-        if: always()
-        run: ./gradlew --stop
+      # Checks the binary compatibility of the library's files
+      - name: Check Binary Compatibility
+        run: |
+          if ! ./gradlew checkLegacyAbi; then
+            echo "::error::This PR changes Kotlin AutoMapper's public API. Run './gradlew updateLegacyAbi' and commit the new ABI files"
+            exit 1
+          fi
