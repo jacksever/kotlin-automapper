@@ -29,8 +29,8 @@ import io.github.jacksever.automapper.annotation.PropertyMapping
 import io.github.jacksever.automapper.processor.converter.CollectionConverter
 import io.github.jacksever.automapper.processor.converter.ObjectConverter
 import io.github.jacksever.automapper.processor.converter.PrimitiveConverter
-import io.github.jacksever.automapper.processor.extenstion.asMemberName
-import io.github.jacksever.automapper.processor.extenstion.isAssignableConsideringNullability
+import io.github.jacksever.automapper.processor.extension.asMemberName
+import io.github.jacksever.automapper.processor.extension.isAssignableConsideringNullability
 import io.github.jacksever.automapper.processor.formatter.DefaultValueFormatter.format
 import io.github.jacksever.automapper.processor.model.ConverterDefinition
 

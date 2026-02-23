@@ -20,8 +20,8 @@ import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSType
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.ksp.toClassName
-import io.github.jacksever.automapper.processor.extenstion.isEnum
-import io.github.jacksever.automapper.processor.extenstion.isSealed
+import io.github.jacksever.automapper.processor.extension.isEnum
+import io.github.jacksever.automapper.processor.extension.isSealed
 
 /**
  * Helper object for formatting default value strings into typed [CodeBlock]s
