@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.github.jacksever.automapper.processor.extenstion
+package io.github.jacksever.automapper.processor.extension
 
 import com.squareup.kotlinpoet.ClassName
 

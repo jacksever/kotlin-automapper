@@ -1,10 +1,10 @@
 [versions]
 # region Kotlin
-org-jetbrains-kotlin = "2.3.0"
+org-jetbrains-kotlin = "2.3.10"
 # endregion
 
 # region Google
-com-google-ksp = "2.3.5"
+com-google-ksp = "2.3.6"
 # endregion
 
 # region Code Generation

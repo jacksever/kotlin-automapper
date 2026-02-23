@@ -20,7 +20,7 @@ import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSType
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.ksp.toClassName
-import io.github.jacksever.automapper.processor.extenstion.toJoinedSimpleName
+import io.github.jacksever.automapper.processor.extension.toJoinedSimpleName
 
 /**
  * A helper object that provides conversion expressions for mapping between different object types

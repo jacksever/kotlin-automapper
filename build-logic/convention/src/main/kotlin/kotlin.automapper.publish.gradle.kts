@@ -16,24 +16,20 @@
 
 import com.vanniktech.maven.publish.MavenPublishBaseExtension
 import io.github.jacksever.convention.AutomapperExtension
+import io.github.jacksever.convention.groupId
+import io.github.jacksever.convention.versionName
 
 plugins {
     id("com.vanniktech.maven.publish")
 }
 
-group = "io.github.jacksever.automapper"
-version = "0.10.0"
+group = project.groupId
+version = project.versionName
 
 val artifact = project.extensions.getByType<AutomapperExtension>().artifact
 
 afterEvaluate {
     configure<MavenPublishBaseExtension> {
-        coordinates(
-            groupId = project.group.toString(),
-            artifactId = artifact.id.orNull,
-            version = project.version.toString()
-        )
-
         pom {
             name.set(artifact.name.orNull)
             description.set(artifact.description.orNull)

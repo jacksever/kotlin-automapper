@@ -42,7 +42,7 @@ import io.github.jacksever.automapper.processor.collector.MapperDefinitionCollec
 import io.github.jacksever.automapper.processor.collector.OptInAnnotationCollector
 import io.github.jacksever.automapper.processor.collector.OptInAnnotationCollectorImpl
 import io.github.jacksever.automapper.processor.exception.MappingException
-import io.github.jacksever.automapper.processor.extenstion.toJoinedSimpleName
+import io.github.jacksever.automapper.processor.extension.toJoinedSimpleName
 import io.github.jacksever.automapper.processor.helper.RuntimeParameterHelper
 import io.github.jacksever.automapper.processor.helper.RuntimeParameterHelperImpl
 import io.github.jacksever.automapper.processor.model.MapperDefinition

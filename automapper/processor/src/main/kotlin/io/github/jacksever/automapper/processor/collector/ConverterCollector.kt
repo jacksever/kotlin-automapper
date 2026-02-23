@@ -22,7 +22,7 @@ import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import com.google.devtools.ksp.symbol.KSType
 import io.github.jacksever.automapper.annotation.AutoConverter
-import io.github.jacksever.automapper.processor.extenstion.getArgument
+import io.github.jacksever.automapper.processor.extension.getArgument
 import io.github.jacksever.automapper.processor.model.ConverterDefinition
 
 /**

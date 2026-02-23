@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.github.jacksever.automapper.processor.extenstion
+package io.github.jacksever.automapper.processor.extension
 
 import com.google.devtools.ksp.symbol.KSAnnotation
 import com.google.devtools.ksp.symbol.KSClassDeclaration
