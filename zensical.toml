@@ -1,0 +1,88 @@
+[project]
+# Project information
+site_name = "Kotlin AutoMapper"
+site_description = "Boilerplate-free, type-safe object mapping for Kotlin Multiplatform. A KSP annotation processor that automatically generates conversion code for data, enum, and sealed classes"
+site_author = "Alexander Gorodnikov"
+site_url = "https://jacksever.github.io/kotlin-automapper/"
+
+# Repository
+repo_name = "jacksever/kotlin-automapper"
+repo_url = "https://github.com/jacksever/kotlin-automapper"
+
+# Copyright
+copyright = "Copyright &copy; 2026 Alexander Gorodnikov"
+
+# Navigation
+nav = [
+    { "Overview" = "index.md" },
+    { "Features" = "features.md" },
+    { "Setup" = "setup.md" },
+    { "How to Use" = "how-to-use.md" },
+    { "Advanced Usage" = [
+        { "Unidirectional Mapping" = "advanced/unidirectional-mapping.md" },
+        { "Property Mapping" = "advanced/property-mapping.md" },
+        { "Default Values" = "advanced/default-values.md" },
+        { "Custom Type Conversion" = "advanced/custom-type-conversion.md" },
+        { "Nested Object Mapping" = "advanced/nested-object-mapping.md" },
+    ] },
+    { "Contributing" = "contributing.md" },
+    { "Code of Conduct" = "code_of_conduct.md" }
+]
+
+# Configuration
+[project.theme]
+language = "en"
+custom_dir = "docs/overrides"
+features = [
+    "navigation.top",
+    "navigation.path",
+    "navigation.expand",
+    "navigation.instant",
+    "navigation.instant.progress",
+    "search.share",
+    "search.suggest",
+    "search.highlight",
+]
+
+# Customization
+[project.theme.icon]
+repo = "fontawesome/brands/github"
+
+[[project.extra.social]]
+icon = "fontawesome/brands/github"
+link = "https://github.com/jacksever/kotlin-automapper"
+
+# Palette toggle for automatic mode
+[[project.theme.palette]]
+media = "(prefers-color-scheme)"
+toggle.icon = "lucide/sun-moon"
+toggle.name = "Switch to light mode"
+
+# Palette toggle for light mode
+[[project.theme.palette]]
+media = "(prefers-color-scheme: light)"
+scheme = "default"
+toggle.icon = "lucide/sun"
+toggle.name = "Switch to dark mode"
+
+# Palette toggle for dark mode
+[[project.theme.palette]]
+media = "(prefers-color-scheme: dark)"
+scheme = "slate"
+toggle.icon = "lucide/moon"
+toggle.name = "Switch to system preference"
+
+# Cookie
+[project.extra.consent]
+title = "Cookie consent"
+description = """
+We use cookies to recognize your repeated visits and preferences, as well
+as to measure the effectiveness of our documentation and whether users
+find what they're searching for. With your consent, you're helping us to
+make our documentation better.
+"""
+actions = [
+    "accept",
+    "reject",
+    "manage"
+]
