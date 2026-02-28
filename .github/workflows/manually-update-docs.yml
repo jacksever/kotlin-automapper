@@ -12,7 +12,7 @@ permissions:
   id-token: write
 
 jobs:
-  deploy:
+  deploy-docs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -20,31 +20,31 @@ jobs:
 
     steps:
       # Configures the project for deployment to GitHub Pages
-      - name: Configure Pages
+      - name: Configure pages
         uses: actions/configure-pages@v5
 
       # Checks out the repository code so the workflow can access it
-      - name: Checkout Repository
+      - name: Checkout repository
         uses: actions/checkout@v6
       
       # Sets up the specified Python version
-      - name: Set up Python
+      - name: Setup Python
         uses: actions/setup-python@v6
         with:
-          python-version: 3.x
+          python-version: '3.x'
 
       # Installs the project dependencies
-      - name: Install Dependencies
+      - name: Install dependencies
         run: |
           pip install --upgrade pip
           pip install zensical
 
       # Builds the static site using Zensical
-      - name: Build Documentation
+      - name: Build documentation
         run: zensical build --clean
 
       # Uploads the build artifact for GitHub Pages
-      - name: Upload Artifact
+      - name: Upload artifact
         uses: actions/upload-pages-artifact@v4
         with:
           path: site
