@@ -4,7 +4,7 @@ AutoMapper is equipped with powerful features to handle complex object graphs. I
 
 ---
 
-## 1. Recursive Constructor-Based Mapping
+## Recursive Constructor-Based Mapping
 
 This feature activates when a target class requires a constructor parameter for which there is no property of the same name in the source, but the source *does* have properties that match the parameters of the nested object's constructor.
 
@@ -51,7 +51,7 @@ internal fun Source.asTarget(): Target = Target(
 
 ---
 
-## 2. Mapping with Interface Delegation (`by`)
+## Mapping with Interface Delegation (`by`)
 
 Kotlin's interface delegation provides a powerful way to compose behavior. From AutoMapper's perspective, properties from a delegated interface are treated as if they were declared directly in the class.
 
