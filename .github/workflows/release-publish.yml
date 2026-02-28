@@ -6,13 +6,20 @@ on:
   push:
     branches: [ "main" ]
 
+permissions:
+  pages: write
+  contents: write
+  id-token: write
+
 jobs:
-  release:
-    # This condition checks the merge commit message to ensure the job only runs for release merges
+  tag-release:
+    name: Tag Release
+    # This condition ensures the workflow only runs for release merges
     if: contains(github.event.head_commit.message, 'Prepare release of Kotlin AutoMapper')
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
 
     steps:
       # Checks out the repository with full history to allow branch switching
@@ -37,17 +44,22 @@ jobs:
           git tag "${{ steps.get_version.outputs.version }}"
           git push origin "${{ steps.get_version.outputs.version }}"
 
+  publish-library:
+    name: Publish Library
+    needs: tag-release
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checks out the repository code so the workflow can access it
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
       # Sets up the specified Java version
       - name: Setup JDK 21
         uses: actions/setup-java@v5
         with:
           java-version: '21'
           distribution: 'temurin'
-
-      # Sets up the specified Python version
-      - uses: actions/setup-python@v6
-        with:
-          python-version: '3.x'
 
       # Sets up the Gradle for the project
       - name: Setup Gradle
@@ -65,17 +77,54 @@ jobs:
           ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.SIGNING_KEY_ID }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
 
-      # Deploys the documentation to GitHub Pages
-      - name: Deploy Documentation to GitHub Pages
-        run: |
-          git config user.name 'github-actions[bot]' && git config user.email 'github-actions[bot]@users.noreply.github.com'
-          pip install --upgrade pip && pip install mkdocs-material mkdocs-material-extensions mkdocs-minify-plugin
-          mkdocs gh-deploy --force
-
       # Creates a GitHub Release associated with the new tag
       - name: Create GitHub Release
         uses: ncipollo/release-action@v1
         with:
-          tag: '${{ steps.get_version.outputs.version }}'
-          name: '${{ steps.get_version.outputs.version }}'
+          tag: '${{ needs.tag-release.outputs.version }}'
+          name: '${{ needs.tag-release.outputs.version }}'
           generateReleaseNotes: true
+
+  deploy-docs:
+    name: Deploy Documentation
+    needs: [ tag-release, publish-library ]
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      # Configures the project for deployment to GitHub Pages
+      - name: Configure pages
+        uses: actions/configure-pages@v5
+
+      # Checks out the repository code so the workflow can access it
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      # Sets up the specified Python version
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.x'
+
+      # Installs the project dependencies
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install zensical
+
+      # Builds the static site using Zensical
+      - name: Build documentation
+        run: zensical build --clean
+
+      # Uploads the build artifact for GitHub Pages
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: site
+
+      # Deploys the documentation to GitHub Pages
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
