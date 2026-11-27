@@ -57,7 +57,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.time.Clock
-import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 class DataClassMappingTest {
@@ -209,7 +208,6 @@ class DataClassMappingTest {
     }
 
     @Test
-    @OptIn(ExperimentalUuidApi::class)
     fun `test mapping with nullable converters`() {
         // Given
         val uuid = Uuid.random()
@@ -250,7 +248,6 @@ class DataClassMappingTest {
     }
 
     @Test
-    @OptIn(ExperimentalUuidApi::class)
     fun `test reversible mapping with converters`() {
         // Given
         val source = ReversibleWithConverterSource(id = 1, uuid = Uuid.random())

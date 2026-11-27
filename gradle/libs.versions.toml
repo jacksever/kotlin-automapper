@@ -1,18 +1,18 @@
 [versions]
 # region Kotlin
-org-jetbrains-kotlin = "2.3.10"
+org-jetbrains-kotlin = "2.4.21"
 # endregion
 
 # region Google
-com-google-ksp = "2.3.6"
+com-google-ksp = "2.3.14"
 # endregion
 
 # region Code Generation
-com-squareup-kotlinpoet = "2.2.0"
+com-squareup-kotlinpoet = "2.4.0"
 # endregion
 
 # region Maven Publishing
-com-vanniktech-maven-publish = "0.36.0"
+com-vanniktech-maven-publish = "0.37.0"
 # endregion
 
 [libraries]

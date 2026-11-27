@@ -17,10 +17,8 @@
 package io.github.jacksever.automapper.sample.converter
 
 import io.github.jacksever.automapper.annotation.AutoConverter
-import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
-@OptIn(ExperimentalUuidApi::class)
 internal object UuidConverter {
 
     @AutoConverter
