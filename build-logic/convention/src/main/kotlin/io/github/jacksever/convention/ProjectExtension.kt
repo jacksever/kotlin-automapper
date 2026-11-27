@@ -45,4 +45,4 @@ val Project.versionName: String
 private fun Project.stringProperty(
     name: String,
     default: () -> String = { error("Unknown property: $name") },
-): String = (properties[name] as String?) ?: default()
+): String = (findProperty(name) as String?) ?: default()

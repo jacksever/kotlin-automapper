@@ -25,7 +25,7 @@ kotlin {
     jvm()
 
     // JS targets
-    js(IR) {
+    js {
         nodejs()
         browser()
         binaries.executable()

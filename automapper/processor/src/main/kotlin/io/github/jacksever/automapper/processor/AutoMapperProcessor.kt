@@ -16,6 +16,8 @@
 
 package io.github.jacksever.automapper.processor
 
+import com.google.devtools.ksp.ApiFeatures
+import com.google.devtools.ksp.buildApiFeatures
 import com.google.devtools.ksp.processing.CodeGenerator
 import com.google.devtools.ksp.processing.Dependencies
 import com.google.devtools.ksp.processing.KSPLogger
@@ -63,12 +65,19 @@ internal class AutoMapperProcessor(
     OptInAnnotationCollector by OptInAnnotationCollectorImpl(logger = logger),
     MapperDefinitionCollector by MapperDefinitionCollectorImpl(logger = logger) {
 
+    override val apiFeatures: ApiFeatures = buildApiFeatures {
+        enableBackingFields = true
+        enableContextParameters = true
+    }
+
     override fun process(resolver: Resolver): List<KSAnnotated> = runCatching {
         logger.info(message = "AutoMapperProcessor: Starting processing round...")
 
         val symbols =
             resolver.getSymbolsWithAnnotation(checkNotNull(AutoMapperModule::class.qualifiedName))
-        val (validSymbols, invalidSymbols) = symbols.partition { symbol -> symbol.validate() }
+        val (validSymbols, invalidSymbols) = symbols.partition { symbol ->
+            symbol.validate(apiFeatures = apiFeatures)
+        }
 
         logger.info(message = "AutoMapperProcessor: Found ${symbols.toList().size} annotated symbols. Valid: ${validSymbols.size}, Invalid (deferred): ${invalidSymbols.size}")
 

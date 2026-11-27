@@ -17,7 +17,6 @@
 package io.github.jacksever.automapper.sample.model
 
 import kotlin.time.Instant
-import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 /** Used for a simple sealed class mapping test */
@@ -196,7 +195,6 @@ sealed interface BaseMeasurement {
 sealed interface Measurement : BaseMeasurement {
     val value: Int
 
-    @OptIn(ExperimentalUuidApi::class)
     data class Base(
         override val id: String = Uuid.random().toString(),
         override val value: Int,
