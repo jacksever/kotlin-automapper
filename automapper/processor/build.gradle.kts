@@ -36,4 +36,14 @@ dependencies {
     // region Google KSP dependencies
     implementation(libs.google.devtools.ksp.processor.api)
     // endregion
+
+    // region Testing dependencies
+    testImplementation(kotlin("test-junit5"))
+    testImplementation(libs.google.devtools.ksp.processor.runtime)
+    testImplementation(libs.google.devtools.ksp.processor.common.deps)
+    // endregion
+}
+
+tasks.test {
+    useJUnitPlatform()
 }

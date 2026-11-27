@@ -19,6 +19,8 @@ com-vanniktech-maven-publish = "0.37.0"
 com-squareup-kotlinpoet = { group = "com.squareup", name = "kotlinpoet", version.ref = "com-squareup-kotlinpoet" }
 com-squareup-kotlinpoet-ksp = { group = "com.squareup", name = "kotlinpoet-ksp", version.ref = "com-squareup-kotlinpoet" }
 google-devtools-ksp-processor-api = { group = "com.google.devtools.ksp", name = "symbol-processing-api", version.ref = "com-google-ksp" }
+google-devtools-ksp-processor-runtime = { group = "com.google.devtools.ksp", name = "symbol-processing-aa-embeddable", version.ref = "com-google-ksp" }
+google-devtools-ksp-processor-common-deps = { group = "com.google.devtools.ksp", name = "symbol-processing-common-deps", version.ref = "com-google-ksp" }
 
 # region Gradle plugins
 gradlePlugin-kotlin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "org-jetbrains-kotlin" }
