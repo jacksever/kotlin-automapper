@@ -354,7 +354,7 @@ internal object ParameterHelper {
                         }
 
                         if (conversion.isNotEmpty()) {
-                            add(".%L ?: %L", conversion, fallback)
+                            add("?%L ?: %L", conversion, fallback)
                         } else {
                             add(" ?: %L", fallback)
                         }
