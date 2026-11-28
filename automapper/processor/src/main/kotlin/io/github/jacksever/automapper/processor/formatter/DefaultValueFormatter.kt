@@ -51,7 +51,7 @@ internal object DefaultValueFormatter {
                 val entry = defaultValue.substringAfterLast(delimiter = '.')
                 val className = (targetType.declaration as KSClassDeclaration).toClassName()
 
-                CodeBlock.of("%T.%L", className, entry)
+                CodeBlock.of("%T.%N", className, entry)
             }
 
             else -> CodeBlock.of("%L", defaultValue)

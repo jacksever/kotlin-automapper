@@ -62,7 +62,7 @@ internal class EnumMapperBuilder(
 
                 if (targetEntryName in toEntries) {
                     addStatement(
-                        "%T.%L -> %T.%L",
+                        "%T.%N -> %T.%N",
                         from.toClassName(),
                         sourceEntryName,
                         to.toClassName(),
@@ -74,7 +74,7 @@ internal class EnumMapperBuilder(
                     logger.warn(message = errorMessage, symbol = from)
 
                     addStatement(
-                        "%T.%L -> throw %T(%S)",
+                        "%T.%N -> throw %T(%S)",
                         from.toClassName(),
                         sourceEntryName,
                         IllegalArgumentException::class,
