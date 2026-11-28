@@ -19,13 +19,15 @@ package io.github.jacksever.automapper.processor.converter
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSType
 import com.squareup.kotlinpoet.CodeBlock
+import com.squareup.kotlinpoet.MemberName
 import com.squareup.kotlinpoet.buildCodeBlock
+import io.github.jacksever.automapper.processor.extension.isAssignableConsideringNullability
 
 /**
  * A helper object that provides conversion expressions for mapping between different collection types
  *
  * This object checks if both types are supported collections and recursively generates conversions
- * for their type arguments. It also handles `List <-> Set` transformations
+ * for their type arguments. It also handles `List <-> Set` transformations and mutable targets
  */
 internal object CollectionConverter {
 
@@ -55,18 +57,34 @@ internal object CollectionConverter {
         val innerConversion = getInnerConversion(sourceArg, targetArg)
 
         val needsElementConversion = innerConversion.isNotEmpty()
-        val needsContainerConversion = sourceKind != targetKind
+        val isMutableTarget = targetDeclaration.isMutableCollection()
+        val needsMutableCopy = isMutableTarget && (!sourceDeclaration.isMutableCollection()
+                || !targetType.isAssignableConsideringNullability(from = sourceType))
+        val needsContainerConversion = sourceKind != targetKind || needsMutableCopy
 
         if (!needsElementConversion && !needsContainerConversion) {
             return EMPTY
         }
 
         return buildCodeBlock {
-            val elementExpression = innerConversion.takeIf { it.isNotEmpty() } ?: CodeBlock.of("value")
-            add(".map { value -> %L }", elementExpression)
+            if (isMutableTarget) {
+                if (needsElementConversion) {
+                    val factory = MemberName(
+                        packageName = "kotlin.collections",
+                        simpleName = if (targetKind == CollectionKind.SET) "mutableSetOf" else "mutableListOf",
+                    )
+                    add(".mapTo(%M()) { value -> %L }", factory, innerConversion)
+                } else {
+                    add(if (targetKind == CollectionKind.SET) ".toMutableSet()" else ".toMutableList()")
+                }
+            } else {
+                val elementExpression =
+                    innerConversion.takeIf { it.isNotEmpty() } ?: CodeBlock.of("value")
+                add(".map { value -> %L }", elementExpression)
 
-            if (targetKind == CollectionKind.SET) {
-                add(".toSet()")
+                if (targetKind == CollectionKind.SET) {
+                    add(".toSet()")
+                }
             }
         }
     }
@@ -94,6 +112,17 @@ internal object CollectionConverter {
         SET,
         ;
     }
+
+    /**
+     * Checks whether the declared collection type requires a mutable result
+     */
+    private fun KSClassDeclaration.isMutableCollection(): Boolean =
+        when (qualifiedName?.asString()) {
+            "kotlin.collections.MutableList",
+            "kotlin.collections.MutableSet" -> true
+
+            else -> false
+        }
 
     /**
      * Determines the [CollectionKind] (List or Set) of a given class declaration
