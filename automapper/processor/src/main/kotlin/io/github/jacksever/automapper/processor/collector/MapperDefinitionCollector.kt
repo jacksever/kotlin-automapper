@@ -116,7 +116,7 @@ internal class MapperDefinitionCollectorImpl(
         MapperDefinition(
             source = source,
             target = target,
-            name = functionName,
+            function = function,
             converters = converters,
             reversible = reversible,
             defaultValues = defaultValues,
