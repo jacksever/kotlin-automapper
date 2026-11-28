@@ -16,25 +16,43 @@
 
 package io.github.jacksever.automapper.processor.model
 
-import com.google.devtools.ksp.symbol.KSClassDeclaration
+import com.google.devtools.ksp.symbol.KSTypeParameter
 import io.github.jacksever.automapper.annotation.DefaultValue
 import io.github.jacksever.automapper.annotation.PropertyMapping
 
 /**
  * Data model representing a single mapping operation to be generated
  *
- * @property source the source class for the mapping
- * @property target the target class for the mapping
+ * @property source full source type, including arguments
+ * @property target full target type, including arguments
+ * @property name original mapper method name, also used to distinguish JVM overloads
+ * @property typeParameters type variables required by the mapping signature and their bounds
  * @property reversible if true, a reverse mapping function will also be generated
  * @property defaultValues list of default value mappings for target properties
  * @property converters list of custom converter functions available for this mapping
  * @property propertyMappings list of custom property mappings
  */
 internal data class MapperDefinition(
-    val source: KSClassDeclaration,
-    val target: KSClassDeclaration,
+    val source: MappingType,
+    val target: MappingType,
+    val name: String,
+    val typeParameters: List<KSTypeParameter>,
     val reversible: Boolean,
     val defaultValues: List<DefaultValue>,
     val converters: List<ConverterDefinition>,
     val propertyMappings: List<PropertyMapping>,
-)
+) {
+
+    /**
+     * Builds the reverse mapping with the same generic scope and reversed property names
+     *
+     * Default values belong to the original target and are not applied to the reverse direction
+     */
+    fun reversed(): MapperDefinition = copy(
+        source = target,
+        target = source,
+        reversible = false,
+        defaultValues = emptyList(),
+        propertyMappings = propertyMappings.map { mapping -> PropertyMapping(from = mapping.to, to = mapping.from) },
+    )
+}

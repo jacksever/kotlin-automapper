@@ -62,6 +62,36 @@ interface MapperModule {
 }
 ```
 
+## Generic Converters
+
+A converter can declare type parameters and reuse the same conversion for different property types:
+
+```kotlin
+data class Box<T>(val value: T)
+data class BoxDto<T>(val value: T)
+data class BoxSource(val content: Box<String>)
+data class BoxTarget(val content: BoxDto<String>)
+
+object BoxConverter {
+
+    @AutoConverter
+    fun <T> convert(value: Box<T>): BoxDto<T> = BoxDto(value = value.value)
+}
+
+@AutoMapperModule(converters = [BoxConverter::class])
+interface BoxMapperModule {
+
+    @AutoMapper(reversible = false)
+    fun map(source: BoxSource): BoxTarget
+}
+```
+
+AutoMapper infers `T = String` for `content`. The same converter can handle other arguments and collection elements. This example disables reverse mapping because it only provides a converter from `Box<T>` to `BoxDto<T>`.
+
+Type arguments are inferred from the source and, when needed, the expected result. Upper bounds are checked before a converter is selected; a matching concrete converter takes priority over an unconstrained generic one. Reified parameters require concrete or reified arguments.
+
+See [Generic Mapping](generic-mapping.md) for inherited converters, type parameter constraints, and generic mapper signatures.
+
 ## Nullability and Converter Selection
 
 AutoMapper's processor is designed to intelligently handle nullability differences between your properties and your converters. It can automatically generate safe calls (`?.let`) or non-null assertions (`!!`) where necessary.

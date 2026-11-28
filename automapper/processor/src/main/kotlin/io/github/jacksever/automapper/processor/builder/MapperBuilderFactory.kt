@@ -18,11 +18,12 @@ package io.github.jacksever.automapper.processor.builder
 
 import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.symbol.ClassKind
-import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.Modifier
 import io.github.jacksever.automapper.annotation.DefaultValue
 import io.github.jacksever.automapper.annotation.PropertyMapping
 import io.github.jacksever.automapper.processor.model.ConverterDefinition
+import io.github.jacksever.automapper.processor.model.MappingContext
+import io.github.jacksever.automapper.processor.model.MappingType
 
 /**
  * Factory for creating [MapperBuilder] instances based on the source and target types
@@ -42,6 +43,7 @@ internal object MapperBuilderFactory {
      * @param logger logger for reporting information or warnings during builder creation
      * @param source source class declaration
      * @param target target class declaration
+     * @param context resolution scope shared by builders and collectors for one function
      * @param defaultValues list of default value mappings
      * @param converters list of custom converter functions available for this mapping
      * @param propertyMappings list of custom property mappings
@@ -50,36 +52,33 @@ internal object MapperBuilderFactory {
      */
     fun getMapperBuilder(
         logger: KSPLogger,
-        source: KSClassDeclaration,
-        target: KSClassDeclaration,
+        source: MappingType,
+        target: MappingType,
+        context: MappingContext,
         defaultValues: List<DefaultValue>,
         converters: List<ConverterDefinition>,
         propertyMappings: List<PropertyMapping>,
     ): MapperBuilder {
-        val isSourceEnum = source.classKind == ClassKind.ENUM_CLASS
-        val isTargetEnum = target.classKind == ClassKind.ENUM_CLASS
-
-        val isSourceData = source.modifiers.contains(Modifier.DATA)
-        val isTargetData = target.modifiers.contains(Modifier.DATA)
-
-        val isSourceSealed = source.modifiers.contains(Modifier.SEALED)
-        val isTargetSealed = target.modifiers.contains(Modifier.SEALED)
+        val sourceClass = source.declaration
+        val targetClass = target.declaration
 
         return when {
-            isSourceEnum && isTargetEnum -> EnumMapperBuilder(
+            sourceClass.classKind == ClassKind.ENUM_CLASS && targetClass.classKind == ClassKind.ENUM_CLASS -> EnumMapperBuilder(
                 logger = logger,
                 propertyMappings = propertyMappings,
             )
 
-            isSourceSealed && isTargetSealed -> SealedMapperBuilder(
+            Modifier.SEALED in sourceClass.modifiers && Modifier.SEALED in targetClass.modifiers -> SealedMapperBuilder(
                 logger = logger,
+                context = context,
                 converters = converters,
                 defaultValues = defaultValues,
                 propertyMappings = propertyMappings,
             )
 
-            isSourceData && isTargetData -> DataMapperBuilder(
+            Modifier.DATA in sourceClass.modifiers && Modifier.DATA in targetClass.modifiers -> DataMapperBuilder(
                 logger = logger,
+                context = context,
                 converters = converters,
                 defaultValues = defaultValues,
                 propertyMappings = propertyMappings,
@@ -88,13 +87,13 @@ internal object MapperBuilderFactory {
             else -> {
                 logger.error(
                     message = buildString {
-                        append("Unsupported mapping from ${source.qualifiedName?.asString()} to ${target.qualifiedName?.asString()}. ")
+                        append("Unsupported mapping from ${source.declaration.qualifiedName?.asString()} to ${target.declaration.qualifiedName?.asString()}. ")
                         append("The processor supports mapping only between matching pairs of types: (Enum, Enum), (Sealed, Sealed), or (Data, Data)")
                     },
-                    symbol = source
+                    symbol = source.declaration
                 )
 
-                throw IllegalStateException("Unsupported mapping configuration. See KSP logs for details")
+                error(message = "Unsupported mapping configuration. See KSP logs for details")
             }
         }
     }

@@ -16,7 +16,7 @@
 
 package io.github.jacksever.automapper.processor.model
 
-import com.google.devtools.ksp.symbol.KSAnnotation
+import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import com.google.devtools.ksp.symbol.KSType
 
@@ -26,11 +26,11 @@ import com.google.devtools.ksp.symbol.KSType
  * @property from source type of the conversion
  * @property to target type of the conversion
  * @property function declaration of the converter function itself
- * @property optInAnnotations list of OptIn annotations required by the converter
+ * @property owner registered converter class or object, including inherited methods
  */
 internal data class ConverterDefinition(
     val from: KSType,
     val to: KSType,
     val function: KSFunctionDeclaration,
-    val optInAnnotations: List<KSAnnotation> = emptyList(),
+    val owner: KSClassDeclaration,
 )

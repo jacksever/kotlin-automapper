@@ -26,28 +26,21 @@ import com.google.devtools.ksp.processing.SymbolProcessor
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFunctionDeclaration
-import com.google.devtools.ksp.symbol.Modifier
 import com.google.devtools.ksp.validate
-import com.squareup.kotlinpoet.FileSpec
-import com.squareup.kotlinpoet.FunSpec
-import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.ksp.toClassName
 import com.squareup.kotlinpoet.ksp.writeTo
 import io.github.jacksever.automapper.annotation.AutoMapper
 import io.github.jacksever.automapper.annotation.AutoMapperModule
-import io.github.jacksever.automapper.annotation.PropertyMapping
-import io.github.jacksever.automapper.processor.builder.MapperBuilderFactory
+import io.github.jacksever.automapper.processor.builder.MapperFileBuilder
+import io.github.jacksever.automapper.processor.builder.MapperFileBuilderImpl
 import io.github.jacksever.automapper.processor.collector.ConverterCollector
 import io.github.jacksever.automapper.processor.collector.ConverterCollectorImpl
 import io.github.jacksever.automapper.processor.collector.MapperDefinitionCollector
 import io.github.jacksever.automapper.processor.collector.MapperDefinitionCollectorImpl
-import io.github.jacksever.automapper.processor.collector.OptInAnnotationCollector
-import io.github.jacksever.automapper.processor.collector.OptInAnnotationCollectorImpl
 import io.github.jacksever.automapper.processor.exception.MappingException
 import io.github.jacksever.automapper.processor.extension.toJoinedSimpleName
-import io.github.jacksever.automapper.processor.helper.RuntimeParameterHelper
-import io.github.jacksever.automapper.processor.helper.RuntimeParameterHelperImpl
 import io.github.jacksever.automapper.processor.model.MapperDefinition
+import io.github.jacksever.automapper.processor.resolver.MappingTypeResolver
 
 /**
  * Main KSP Processor for generating type-safe mapper extensions
@@ -60,9 +53,8 @@ internal class AutoMapperProcessor(
     private val logger: KSPLogger,
     private val codeGenerator: CodeGenerator,
 ) : SymbolProcessor,
+    MapperFileBuilder by MapperFileBuilderImpl(logger = logger),
     ConverterCollector by ConverterCollectorImpl(logger = logger),
-    RuntimeParameterHelper by RuntimeParameterHelperImpl(logger = logger),
-    OptInAnnotationCollector by OptInAnnotationCollectorImpl(logger = logger),
     MapperDefinitionCollector by MapperDefinitionCollectorImpl(logger = logger) {
 
     override val apiFeatures: ApiFeatures = buildApiFeatures {
@@ -73,6 +65,7 @@ internal class AutoMapperProcessor(
     override fun process(resolver: Resolver): List<KSAnnotated> = runCatching {
         logger.info(message = "AutoMapperProcessor: Starting processing round...")
 
+        val types = MappingTypeResolver(resolver = resolver)
         val symbols =
             resolver.getSymbolsWithAnnotation(checkNotNull(AutoMapperModule::class.qualifiedName))
         val (validSymbols, invalidSymbols) = symbols.partition { symbol ->
@@ -104,7 +97,7 @@ internal class AutoMapperProcessor(
                             ?.let { annotation ->
                                 val localConverters = collectConverters(annotation = annotation)
                                 val allConverters = (localConverters + globalConverters)
-                                    .groupBy { converter -> "${converter.from}" to "${converter.to}" }
+                                    .groupBy { converter -> converter.from to converter.to }
                                     .mapValues { (types, group) ->
                                         if (group.size > 1) {
                                             logger.warn(
@@ -120,16 +113,18 @@ internal class AutoMapperProcessor(
                                     .toList()
 
                                 collectMapperDefinition(
+                                    types = types,
                                     function = function,
                                     converters = allConverters,
                                     mapperAnnotation = annotation,
                                 )
                             }
                     }
-                    .groupBy { definition -> definition.source }
+                    .groupBy { definition -> definition.source.declaration }
 
                 mappers.forEach { (sourceClass, definitions) ->
                     generateMapper(
+                        types = types,
                         module = module,
                         mappers = definitions,
                         sourceClass = sourceClass,
@@ -154,6 +149,7 @@ internal class AutoMapperProcessor(
      * where [sourceClass] is the input. Handles dependency tracking for KSP incremental builds
      */
     private fun generateMapper(
+        types: MappingTypeResolver,
         module: KSClassDeclaration,
         sourceClass: KSClassDeclaration,
         mappers: List<MapperDefinition>,
@@ -164,20 +160,21 @@ internal class AutoMapperProcessor(
         logger.info(message = "AutoMapperProcessor: Generating mapper file '$fileName' for source class '${sourceClass.toClassName()}'")
 
         runCatching {
-            val fileSpec = buildFileSpec(
+            val fileSpec = buildMapperFile(
+                types = types,
                 module = module,
                 mappers = mappers,
                 fileName = fileName,
                 packageName = packageName,
-                sourceClass = sourceClass,
             )
 
             val allConverters = mappers.flatMap(transform = MapperDefinition::converters)
             val dependencies = buildList {
                 add(element = module.containingFile)
                 add(element = sourceClass.containingFile)
-                addAll(elements = mappers.map { definition -> definition.target.containingFile })
+                addAll(elements = mappers.map { definition -> definition.target.declaration.containingFile })
                 addAll(elements = allConverters.map { converter -> converter.function.containingFile })
+                addAll(elements = allConverters.map { converter -> converter.owner.containingFile })
             }
                 .filterNotNull()
                 .distinct()
@@ -202,116 +199,5 @@ internal class AutoMapperProcessor(
                 }
             }
         }
-    }
-
-    /**
-     * Constructs the KotlinPoet [FileSpec] for the mapper file
-     */
-    private fun buildFileSpec(
-        fileName: String,
-        packageName: String,
-        module: KSClassDeclaration,
-        sourceClass: KSClassDeclaration,
-        mappers: List<MapperDefinition>,
-    ): FileSpec {
-        val sourceClassName = sourceClass.toClassName()
-
-        val fileSpecBuilder = FileSpec.builder(
-            fileName = fileName,
-            packageName = packageName,
-        )
-            .indent(indent = "    ")
-            .addFileComment(
-                format = buildString {
-                    appendLine("Generated by AutoMapperProcessor")
-                    appendLine()
-                    appendLine("Source Module: ${module.qualifiedName?.asString()}")
-                    appendLine()
-                    appendLine("Mappings:")
-                    mappers.forEach { definition ->
-                        appendLine(" > ${definition.source.qualifiedName?.asString()} -> ${definition.target.qualifiedName?.asString()}")
-                        if (definition.reversible) {
-                            appendLine(" > ${definition.target.qualifiedName?.asString()} -> ${definition.source.qualifiedName?.asString()}")
-                        }
-                    }
-                }
-            )
-
-        val visibilityModifier = KModifier.INTERNAL.takeIf {
-            module.modifiers.contains(element = Modifier.INTERNAL)
-        } ?: KModifier.PUBLIC
-
-        mappers.forEach { definition ->
-            val targetClassName = definition.target.toClassName()
-            val builder = MapperBuilderFactory.getMapperBuilder(
-                logger = logger,
-                source = definition.source,
-                target = definition.target,
-                converters = definition.converters,
-                defaultValues = definition.defaultValues,
-                propertyMappings = definition.propertyMappings,
-            )
-
-            val sourceToTargetFunBuilder =
-                FunSpec.builder(name = "as${targetClassName.toJoinedSimpleName()}")
-                    .addModifiers(visibilityModifier)
-                    .receiver(receiverType = sourceClassName)
-                    .returns(returnType = targetClassName)
-                    .addKdoc(format = "Converts [%T] to [%T]", sourceClassName, targetClassName)
-
-            addRuntimeParameters(funSpecBuilder = sourceToTargetFunBuilder, definition = definition)
-
-            sourceToTargetFunBuilder.addCode(
-                codeBlock = builder.buildConversion(
-                    from = definition.source,
-                    to = definition.target,
-                )
-            )
-
-            collectOptInAnnotations(
-                definition = definition,
-                source = definition.source,
-                target = definition.target,
-            )?.let { annotation ->
-                sourceToTargetFunBuilder.addAnnotation(annotationSpec = annotation)
-            }
-
-            fileSpecBuilder.addFunction(funSpec = sourceToTargetFunBuilder.build())
-
-            if (definition.reversible) {
-                val reversedMappings = definition.propertyMappings.map { property ->
-                    PropertyMapping(from = property.to, to = property.from)
-                }
-
-                val targetToSourceFunBuilder =
-                    FunSpec.builder(name = "as${sourceClassName.toJoinedSimpleName()}")
-                        .addModifiers(visibilityModifier)
-                        .receiver(receiverType = targetClassName)
-                        .returns(returnType = sourceClassName)
-                        .addKdoc(format = "Converts [%T] to [%T]", targetClassName, sourceClassName)
-                        .addCode(
-                            codeBlock = MapperBuilderFactory.getMapperBuilder(
-                                logger = logger,
-                                source = definition.target,
-                                target = definition.source,
-                                defaultValues = emptyList(), // Default values are not reversed
-                                converters = definition.converters,
-                                propertyMappings = reversedMappings,
-                            ).buildConversion(from = definition.target, to = definition.source)
-                        )
-
-                collectOptInAnnotations(
-                    definition = definition,
-                    source = definition.target,
-                    target = definition.source,
-                )?.let { annotation ->
-                    targetToSourceFunBuilder.addAnnotation(annotationSpec = annotation)
-                }
-
-                fileSpecBuilder.addFunction(funSpec = targetToSourceFunBuilder.build())
-            }
-        }
-
-        return fileSpecBuilder.build()
     }
 }

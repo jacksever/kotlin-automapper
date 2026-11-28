@@ -74,7 +74,7 @@ internal class ConverterCollectorImpl(
             .mapNotNull { function ->
                 if (!function.hasAutoConverterAnnotation()) return@mapNotNull null
 
-                validateAndBuildConverter(function = function)
+                validateAndBuildConverter(function = function, owner = converterClass)
             }
 
     /**
@@ -83,12 +83,16 @@ internal class ConverterCollectorImpl(
      * A valid converter function must:
      * 1. Have exactly one parameter (the source type)
      * 2. Have a non-Unit return type (the target type)
+     *
+     * Inherited class parameters are substituted in the registered owner's scope. Function type
+     * parameters remain available for inference when the converter is selected for a property.
+     * Unresolved member signatures are reported against the converter function and skipped
      */
-    private fun validateAndBuildConverter(function: KSFunctionDeclaration): ConverterDefinition? {
-        val params = function.parameters
-        val returnType = function.returnType?.resolve()
-
-        if (params.size != 1 || returnType == null) {
+    private fun validateAndBuildConverter(
+        owner: KSClassDeclaration,
+        function: KSFunctionDeclaration,
+    ): ConverterDefinition? {
+        if (function.parameters.size != 1) {
             logger.error(
                 message = "Invalid @AutoConverter function '${function.qualifiedName?.asString()}': must have exactly one parameter and a non-Unit return type",
                 symbol = function
@@ -97,11 +101,27 @@ internal class ConverterCollectorImpl(
             return null
         }
 
-        val fromType = params[0].type.resolve()
+        val signature = function.asMemberOf(containing = owner.asStarProjectedType())
+        val fromType = signature.parameterTypes.singleOrNull()
+        val returnType = signature.returnType
+
+        if (signature.isError || fromType == null || returnType == null || fromType.isError || returnType.isError) {
+            logger.error(
+                message = "Cannot resolve signature of @AutoConverter function '${function.qualifiedName?.asString()}' in registered converter '${owner.qualifiedName?.asString()}'. Check the parameter and return types, including inherited generic arguments",
+                symbol = function,
+            )
+
+            return null
+        }
 
         logger.info(message = "Found converter: ${function.qualifiedName?.asString()} from ${fromType.declaration.simpleName.asString()} to ${returnType.declaration.simpleName.asString()}")
 
-        return ConverterDefinition(from = fromType, to = returnType, function = function)
+        return ConverterDefinition(
+            from = fromType,
+            to = returnType,
+            function = function,
+            owner = owner
+        )
     }
 
     /**
