@@ -20,7 +20,6 @@ import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSType
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.buildCodeBlock
-import io.github.jacksever.automapper.annotation.DefaultValue
 
 /**
  * A helper object that provides conversion expressions for mapping between different collection types
@@ -32,17 +31,16 @@ internal object CollectionConverter {
 
     /**
      * Attempts to generate a conversion expression for collection types (List, Set)
+     *
+     * @param getInnerConversion builds a complete expression for an element named `value`,
+     * or an empty block when no element conversion is needed
      */
     fun getConversion(
         sourceType: KSType,
         targetType: KSType,
-        isShadowed: Boolean,
-        defaultValue: DefaultValue?,
         getInnerConversion: (
             sourceType: KSType,
             targetType: KSType,
-            isShadowed: Boolean,
-            defaultValue: DefaultValue?
         ) -> CodeBlock,
     ): CodeBlock {
         val sourceDeclaration = sourceType.declaration as? KSClassDeclaration ?: return EMPTY
@@ -54,8 +52,7 @@ internal object CollectionConverter {
         val sourceArg = sourceType.arguments.firstOrNull()?.type?.resolve() ?: return EMPTY
         val targetArg = targetType.arguments.firstOrNull()?.type?.resolve() ?: return EMPTY
 
-        val innerConversion =
-            getInnerConversion(sourceArg, targetArg, isShadowed, defaultValue)
+        val innerConversion = getInnerConversion(sourceArg, targetArg)
 
         val needsElementConversion = innerConversion.isNotEmpty()
         val needsContainerConversion = sourceKind != targetKind
@@ -65,7 +62,8 @@ internal object CollectionConverter {
         }
 
         return buildCodeBlock {
-            add(".map { value -> value%L }", innerConversion)
+            val elementExpression = innerConversion.takeIf { it.isNotEmpty() } ?: CodeBlock.of("value")
+            add(".map { value -> %L }", elementExpression)
 
             if (targetKind == CollectionKind.SET) {
                 add(".toSet()")
@@ -81,7 +79,7 @@ internal object CollectionConverter {
     private val EMPTY = CodeBlock.of("")
 
     /**
-     * Represents the kind of a collection, distinguishing between List and Set types
+     * Represents the kind of collection, distinguishing between List and Set types
      */
     private enum class CollectionKind {
 
