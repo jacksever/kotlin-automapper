@@ -71,7 +71,9 @@ internal class MapperFunctionBuilder(private val logger: KSPLogger) :
             buildDeclaration(visibility = visibility, context = context, mapping = mapping)
 
         addRuntimeParameters(funSpecBuilder = function, definition = definition, context = context)
-        function.addKdoc(buildKdoc(definition = definition, parameters = function.parameters))
+        function.addKdoc(
+            block = buildKdoc(definition = definition, parameters = function.parameters)
+        )
 
         val conversionBuilder = MapperBuilderFactory.getMapperBuilder(
             logger = logger,
@@ -146,7 +148,10 @@ internal class MapperFunctionBuilder(private val logger: KSPLogger) :
      * Parameter tags precede the source link without blank lines between tags. Descriptions use
      * the parameters actually generated and respect renamed or missing source properties
      */
-    private fun buildKdoc(definition: MapperDefinition, parameters: List<ParameterSpec>): CodeBlock = buildCodeBlock {
+    private fun buildKdoc(
+        definition: MapperDefinition,
+        parameters: List<ParameterSpec>,
+    ): CodeBlock = buildCodeBlock {
         add(
             "Maps this [%T] to [%T].\n",
             definition.source.declaration.toClassName(),
@@ -181,5 +186,4 @@ internal class MapperFunctionBuilder(private val logger: KSPLogger) :
             add("@see %T.%N\n", module.toClassName(), definition.name)
         }
     }
-
 }
