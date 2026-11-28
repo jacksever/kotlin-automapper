@@ -16,6 +16,7 @@
 
 package io.github.jacksever.automapper.processor.model
 
+import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import com.google.devtools.ksp.symbol.KSTypeParameter
 import io.github.jacksever.automapper.annotation.DefaultValue
 import io.github.jacksever.automapper.annotation.PropertyMapping
@@ -25,7 +26,7 @@ import io.github.jacksever.automapper.annotation.PropertyMapping
  *
  * @property source full source type, including arguments
  * @property target full target type, including arguments
- * @property name original mapper method name, also used to distinguish JVM overloads
+ * @property function original mapper declaration, retained in both mapping directions for source links
  * @property typeParameters type variables required by the mapping signature and their bounds
  * @property reversible if true, a reverse mapping function will also be generated
  * @property defaultValues list of default value mappings for target properties
@@ -35,13 +36,19 @@ import io.github.jacksever.automapper.annotation.PropertyMapping
 internal data class MapperDefinition(
     val source: MappingType,
     val target: MappingType,
-    val name: String,
+    val function: KSFunctionDeclaration,
     val typeParameters: List<KSTypeParameter>,
     val reversible: Boolean,
     val defaultValues: List<DefaultValue>,
     val converters: List<ConverterDefinition>,
     val propertyMappings: List<PropertyMapping>,
 ) {
+
+    /**
+     * Original method name used in diagnostics and generated JVM overload names
+     */
+    val name: String
+        get() = function.simpleName.asString()
 
     /**
      * Builds the reverse mapping with the same generic scope and reversed property names
@@ -53,6 +60,8 @@ internal data class MapperDefinition(
         target = source,
         reversible = false,
         defaultValues = emptyList(),
-        propertyMappings = propertyMappings.map { mapping -> PropertyMapping(from = mapping.to, to = mapping.from) },
+        propertyMappings = propertyMappings.map { mapping ->
+            PropertyMapping(from = mapping.to, to = mapping.from)
+        },
     )
 }

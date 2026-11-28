@@ -27,8 +27,8 @@ import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import com.google.devtools.ksp.validate
+import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.ksp.toClassName
-import com.squareup.kotlinpoet.ksp.writeTo
 import io.github.jacksever.automapper.annotation.AutoMapper
 import io.github.jacksever.automapper.annotation.AutoMapperModule
 import io.github.jacksever.automapper.processor.builder.MapperFileBuilder
@@ -180,9 +180,9 @@ internal class AutoMapperProcessor(
                 .distinct()
                 .toTypedArray()
 
-            fileSpec.writeTo(
-                codeGenerator = codeGenerator,
-                dependencies = Dependencies(aggregating = false, *dependencies)
+            writeMapperFile(
+                fileSpec = fileSpec,
+                dependencies = Dependencies(aggregating = false, *dependencies),
             )
 
             logger.info(message = "AutoMapperProcessor: Successfully generated '$fileName'")
@@ -198,6 +198,31 @@ internal class AutoMapperProcessor(
                     throwable.printStackTrace()
                 }
             }
+        }
+    }
+
+    /**
+     * Writes the file header separately to leave an empty line before the Kotlin source
+     *
+     * KotlinPoet emits file comments immediately before the package declaration. Rendering the
+     * header separately preserves a plain empty separator without adding another comment line
+     */
+    private fun writeMapperFile(fileSpec: FileSpec, dependencies: Dependencies) {
+        val output = codeGenerator.createNewFile(
+            fileName = fileSpec.name,
+            dependencies = dependencies,
+            packageName = fileSpec.packageName,
+        )
+
+        output.bufferedWriter().use { writer ->
+            if (fileSpec.comment.isNotEmpty()) {
+                fileSpec.comment.toString().lineSequence().forEach { line ->
+                    writer.appendLine("// $line")
+                }
+                writer.appendLine()
+            }
+
+            fileSpec.toBuilder().clearComment().build().writeTo(out = writer)
         }
     }
 }

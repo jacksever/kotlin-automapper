@@ -17,11 +17,15 @@
 package io.github.jacksever.automapper.processor.builder
 
 import com.google.devtools.ksp.processing.KSPLogger
+import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
+import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.TypeVariableName
+import com.squareup.kotlinpoet.buildCodeBlock
 import com.squareup.kotlinpoet.ksp.toClassName
 import com.squareup.kotlinpoet.ksp.toTypeName
 import com.squareup.kotlinpoet.ksp.toTypeParameterResolver
@@ -29,6 +33,7 @@ import io.github.jacksever.automapper.processor.collector.OptInAnnotationCollect
 import io.github.jacksever.automapper.processor.collector.OptInAnnotationCollectorImpl
 import io.github.jacksever.automapper.processor.helper.RuntimeParameterHelper
 import io.github.jacksever.automapper.processor.helper.RuntimeParameterHelperImpl
+import io.github.jacksever.automapper.processor.model.MapperDefinition
 import io.github.jacksever.automapper.processor.model.MappingContext
 import io.github.jacksever.automapper.processor.model.MappingFunction
 import io.github.jacksever.automapper.processor.resolver.MappingTypeResolver
@@ -66,6 +71,7 @@ internal class MapperFunctionBuilder(private val logger: KSPLogger) :
             buildDeclaration(visibility = visibility, context = context, mapping = mapping)
 
         addRuntimeParameters(funSpecBuilder = function, definition = definition, context = context)
+        function.addKdoc(buildKdoc(definition = definition, parameters = function.parameters))
 
         val conversionBuilder = MapperBuilderFactory.getMapperBuilder(
             logger = logger,
@@ -96,7 +102,7 @@ internal class MapperFunctionBuilder(private val logger: KSPLogger) :
     }
 
     /**
-     * Creates the generic extension declaration with its KDoc, visibility, and optional JVM name
+     * Creates the generic extension declaration with its visibility and optional JVM name
      */
     private fun buildDeclaration(
         visibility: KModifier,
@@ -117,11 +123,6 @@ internal class MapperFunctionBuilder(private val logger: KSPLogger) :
             .addTypeVariables(typeVariables = typeVariables)
             .receiver(receiverType = definition.source.type.toTypeName(typeParamResolver = context.typeParameters))
             .returns(returnType = definition.target.type.toTypeName(typeParamResolver = context.typeParameters))
-            .addKdoc(
-                format = "Converts [%T] to [%T]",
-                definition.source.declaration.toClassName(),
-                definition.target.declaration.toClassName(),
-            )
 
         if (definition.typeParameters.any { parameter -> parameter.isReified }) {
             function.addModifiers(KModifier.INLINE)
@@ -138,4 +139,47 @@ internal class MapperFunctionBuilder(private val logger: KSPLogger) :
 
         return function
     }
+
+    /**
+     * Builds the summary, runtime parameter descriptions, and source link as one KDoc block
+     *
+     * Parameter tags precede the source link without blank lines between tags. Descriptions use
+     * the parameters actually generated and respect renamed or missing source properties
+     */
+    private fun buildKdoc(definition: MapperDefinition, parameters: List<ParameterSpec>): CodeBlock = buildCodeBlock {
+        add(
+            "Maps this [%T] to [%T].\n",
+            definition.source.declaration.toClassName(),
+            definition.target.declaration.toClassName(),
+        )
+
+        val module = definition.function.parentDeclaration as? KSClassDeclaration
+        if (parameters.isNotEmpty() || module != null) add("\n")
+
+        if (parameters.isNotEmpty()) {
+            val sourcePropertyNames = definition.source.declaration.getAllProperties()
+                .map { property -> property.simpleName.asString() }
+                .toSet()
+
+            parameters.forEach { parameter ->
+                val sourcePropertyName = definition.propertyMappings
+                    .firstOrNull { mapping -> mapping.to == parameter.name }
+                    ?.from ?: parameter.name
+                val description = if (sourcePropertyName in sourcePropertyNames) {
+                    "Fallback for `%L` if its mapped value is null and the target is non-nullable."
+                } else {
+                    "Value for `%L`, which has no matching source property."
+                }
+
+                add("@param %L ", parameter.name)
+                add(description, parameter.name)
+                add("\n")
+            }
+        }
+
+        if (module != null) {
+            add("@see %T.%N\n", module.toClassName(), definition.name)
+        }
+    }
+
 }
