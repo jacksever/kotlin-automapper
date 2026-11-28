@@ -19,6 +19,7 @@ Kotlin AutoMapper uses KSP (Kotlin Symbol Processing) to generate extension func
 -   **Type-Safe & Compile-Time Verified:** All mappings are generated and validated by KSP at compile time. No reflection, no runtime errors.
 -   **Zero Runtime Dependencies:** The annotation library is `SOURCE`-only and adds no overhead to your production app.
 -   **Broad Class Support:** Out-of-the-box support for `data`, `enum`, and `sealed` classes, including complex nested hierarchies.
+-   **Generic Type Support:** Map concrete and open generic models, including inherited properties, collections, sealed hierarchies, and generic converters.
 -   **Powerful Mapping Customization:**
     -   **Property Renaming:** Easily map properties with different names using `@PropertyMapping`.
     -   **Default Values:** Provide fallback values for missing or `null` properties with `@DefaultValue`.

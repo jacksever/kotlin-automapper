@@ -131,3 +131,20 @@ fun main() {
     println("Entity: $entity")
 }
 ```
+
+### Generic Models
+
+Mapper methods can use concrete arguments such as `Source<Int>` or declare their own type parameters:
+
+```kotlin
+@AutoMapperModule
+interface GenericMapperModule {
+
+    @AutoMapper
+    fun <T> map(source: Source<T>): Target<T>
+}
+```
+
+For models with matching `payload: T` properties, this generates `Source<T>.asTarget(): Target<T>` and the reverse extension. Upper bounds and necessary module type parameters are preserved as well.
+
+See [Generic Mapping](advanced/generic-mapping.md) for complete examples, converters, sealed hierarchies, and projection limitations.

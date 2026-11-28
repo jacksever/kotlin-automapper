@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Alexander Gorodnikov
+ * Copyright (c) 2026 Alexander Gorodnikov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,8 @@
 
 package io.github.jacksever.automapper.processor.builder
 
-import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.squareup.kotlinpoet.CodeBlock
+import io.github.jacksever.automapper.processor.model.MappingType
 
 /**
  * Interface defining the contract for generating conversion code blocks
@@ -30,9 +30,9 @@ internal interface MapperBuilder {
     /**
      * Generates the code block to convert an instance of [from] class to an instance of [to] class
      *
-     * @param from source class declaration
-     * @param to target class declaration
+     * @param from source type with resolved arguments
+     * @param to target type with resolved arguments
      * @return [CodeBlock] representing the conversion logic (usually a return statement)
      */
-    fun buildConversion(from: KSClassDeclaration, to: KSClassDeclaration): CodeBlock
+    fun buildConversion(from: MappingType, to: MappingType): CodeBlock
 }

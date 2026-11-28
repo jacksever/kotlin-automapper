@@ -17,14 +17,15 @@
 package io.github.jacksever.automapper.processor.builder
 
 import com.google.devtools.ksp.processing.KSPLogger
-import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.buildCodeBlock
-import com.squareup.kotlinpoet.ksp.toClassName
+import com.squareup.kotlinpoet.ksp.toTypeName
 import io.github.jacksever.automapper.annotation.DefaultValue
 import io.github.jacksever.automapper.annotation.PropertyMapping
 import io.github.jacksever.automapper.processor.helper.ParameterHelper.buildConstructorParameters
 import io.github.jacksever.automapper.processor.model.ConverterDefinition
+import io.github.jacksever.automapper.processor.model.MappingContext
+import io.github.jacksever.automapper.processor.model.MappingType
 
 /**
  * Strategy for generating mapping code for data classes
@@ -34,6 +35,7 @@ import io.github.jacksever.automapper.processor.model.ConverterDefinition
  */
 internal class DataMapperBuilder(
     private val logger: KSPLogger,
+    private val context: MappingContext,
     private val defaultValues: List<DefaultValue>,
     private val converters: List<ConverterDefinition>,
     private val propertyMappings: List<PropertyMapping>,
@@ -50,25 +52,29 @@ internal class DataMapperBuilder(
      * )
      * ```
      */
-    override fun buildConversion(from: KSClassDeclaration, to: KSClassDeclaration): CodeBlock =
+    override fun buildConversion(from: MappingType, to: MappingType): CodeBlock =
         buildCodeBlock {
             val params = buildConstructorParameters(
+                target = to,
+                source = from,
                 logger = logger,
-                targetClass = to,
-                sourceClass = from,
+                context = context,
                 converters = converters,
                 defaultValues = defaultValues,
                 propertyMappings = propertyMappings,
             )
 
-            add("return %T(\n", to.toClassName())
+            add(
+                "return %T(\n",
+                to.constructorType.toTypeName(typeParamResolver = context.typeParameters)
+            )
             indent()
-            params.forEach { param ->
-                if (param.isNotEmpty()) {
+            params
+                .filter { parameter -> parameter.isNotEmpty() }
+                .forEach { param ->
                     add(param)
                     add(",\n")
                 }
-            }
             unindent()
             add(")")
         }

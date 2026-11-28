@@ -21,7 +21,6 @@ import com.google.devtools.ksp.processing.KSPJvmConfig
 import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.symbol.KSNode
 import io.github.jacksever.automapper.annotation.AutoMapper
-import org.junit.jupiter.api.io.TempDir
 import java.io.File
 import java.nio.file.Path
 import kotlin.io.path.createDirectories
@@ -29,6 +28,7 @@ import kotlin.io.path.writeText
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import org.junit.jupiter.api.io.TempDir
 
 class ProcessorDiagnosticTest {
 
@@ -85,6 +85,62 @@ class ProcessorDiagnosticTest {
     }
 
     @Test
+    fun `test converter with unresolved source type reports a diagnostic`() {
+        assertProcessingError(
+            source = """
+                package example
+
+                import io.github.jacksever.automapper.annotation.AutoConverter
+                import io.github.jacksever.automapper.annotation.AutoMapper
+                import io.github.jacksever.automapper.annotation.AutoMapperModule
+
+                data class Source(val value: Int)
+                data class Target(val value: Long)
+
+                object InvalidConverter {
+                    @AutoConverter
+                    fun convert(value: MissingSource): Long = 0L
+                }
+
+                @AutoMapperModule(converters = [InvalidConverter::class])
+                internal interface MapperModule {
+                    @AutoMapper(reversible = false)
+                    fun map(source: Source): Target
+                }
+                """,
+            expectedMessage = "Cannot resolve signature of @AutoConverter function 'example.InvalidConverter.convert' in registered converter 'example.InvalidConverter'",
+        )
+    }
+
+    @Test
+    fun `test converter with unresolved return type reports a diagnostic`() {
+        assertProcessingError(
+            source = """
+                package example
+
+                import io.github.jacksever.automapper.annotation.AutoConverter
+                import io.github.jacksever.automapper.annotation.AutoMapper
+                import io.github.jacksever.automapper.annotation.AutoMapperModule
+
+                data class Source(val value: Int)
+                data class Target(val value: Long)
+
+                object InvalidConverter {
+                    @AutoConverter
+                    fun convert(value: Int): MissingTarget = error("Unresolved return type")
+                }
+
+                @AutoMapperModule(converters = [InvalidConverter::class])
+                internal interface MapperModule {
+                    @AutoMapper(reversible = false)
+                    fun map(source: Source): Target
+                }
+                """,
+            expectedMessage = "Cannot resolve signature of @AutoConverter function 'example.InvalidConverter.convert' in registered converter 'example.InvalidConverter'",
+        )
+    }
+
+    @Test
     fun `test missing required target property reports a diagnostic`() {
         assertProcessingError(
             source = """
@@ -103,6 +159,179 @@ class ProcessorDiagnosticTest {
                 }
                 """,
             expectedMessage = "Cannot map property 'required' for example.Target. No matching property found in example.Source and no default value is provided",
+        )
+    }
+
+    @Test
+    fun `test underdetermined sealed type parameter reports a diagnostic`() {
+        assertProcessingError(
+            source = """
+                package example
+
+                import io.github.jacksever.automapper.annotation.AutoMapper
+                import io.github.jacksever.automapper.annotation.AutoMapperModule
+
+                sealed interface Source<T> {
+                    data class Value<T>(val payload: T) : Source<T>
+                }
+                sealed interface Target<T> {
+                    data class Value<A, B>(val payload: A, val extra: B) : Target<A>
+                }
+
+                @AutoMapperModule
+                internal interface MapperModule {
+                    @AutoMapper(reversible = false)
+                    fun map(source: Source<String>): Target<String>
+                }
+                """,
+            expectedMessage = "Cannot infer type arguments for sealed subclass 'example.Target.Value'",
+        )
+    }
+
+    @Test
+    fun `test unconstructible projected target reports a diagnostic`() {
+        assertProcessingError(
+            source = """
+                package example
+
+                import io.github.jacksever.automapper.annotation.AutoMapper
+                import io.github.jacksever.automapper.annotation.AutoMapperModule
+
+                data class Source(val payload: Int)
+                data class Target<T : Comparable<T>>(val payload: T)
+
+                @AutoMapperModule
+                internal interface MapperModule {
+                    @AutoMapper(reversible = false)
+                    fun map(source: Source): Target<*>
+                }
+                """,
+            expectedMessage = "use concrete target type arguments",
+        )
+    }
+
+    @Test
+    fun `test generic mappings with conflicting receiver report a diagnostic`() {
+        assertProcessingError(
+            source = """
+                package example
+
+                import io.github.jacksever.automapper.annotation.AutoMapper
+                import io.github.jacksever.automapper.annotation.AutoMapperModule
+
+                data class Source<T>(val payload: T)
+                data class Target<T>(val payload: T)
+
+                @AutoMapperModule
+                internal interface MapperModule {
+                    @AutoMapper(reversible = false)
+                    fun first(source: Source<String>): Target<String>
+
+                    @AutoMapper(reversible = false)
+                    fun second(source: Source<String>): Target<Long>
+                }
+                """,
+            expectedMessage = "Conflicting generated mapping signature for mapper methods: first, second",
+        )
+    }
+
+    @Test
+    fun `test nullable root mapping reports a diagnostic`() {
+        assertProcessingError(
+            source = """
+                package example
+
+                import io.github.jacksever.automapper.annotation.AutoMapper
+                import io.github.jacksever.automapper.annotation.AutoMapperModule
+
+                data class Source<T>(val payload: T)
+                data class Target<T>(val payload: T)
+
+                @AutoMapperModule
+                internal interface MapperModule {
+                    @AutoMapper(reversible = false)
+                    fun map(source: Source<String>?): Target<String>
+                }
+                """,
+            expectedMessage = "Mapper 'map' must use non-nullable source and target types",
+        )
+    }
+
+    @Test
+    fun `test unrelated generic parameters report missing conversion`() {
+        assertProcessingError(
+            source = """
+                package example
+
+                import io.github.jacksever.automapper.annotation.AutoMapper
+                import io.github.jacksever.automapper.annotation.AutoMapperModule
+
+                data class Source<T>(val payload: T)
+                data class Target<T>(val payload: T)
+
+                @AutoMapperModule
+                internal interface MapperModule {
+                    @AutoMapper(reversible = false)
+                    fun <T, U> map(source: Source<T>): Target<U>
+                }
+                """,
+            expectedMessage = "No conversion available from 'T' to 'U'",
+        )
+    }
+
+    @Test
+    fun `test reified converter rejects non-reified mapper argument`() {
+        assertProcessingError(
+            source = """
+                package example
+
+                import io.github.jacksever.automapper.annotation.AutoConverter
+                import io.github.jacksever.automapper.annotation.AutoMapper
+                import io.github.jacksever.automapper.annotation.AutoMapperModule
+
+                data class Source<T>(val payload: T)
+                data class Target(val payload: String)
+
+                object Converter {
+                    @AutoConverter
+                    inline fun <reified T> convert(value: T): String = T::class.simpleName.orEmpty()
+                }
+
+                @AutoMapperModule(converters = [Converter::class])
+                internal interface MapperModule {
+                    @AutoMapper(reversible = false)
+                    fun <T> map(source: Source<T>): Target
+                }
+                """,
+            expectedMessage = "No conversion available from 'T' to 'String'",
+        )
+    }
+
+    @Test
+    fun `test reified converter rejects array with non-reified element parameter`() {
+        assertProcessingError(
+            source = """
+                package example
+
+                import io.github.jacksever.automapper.annotation.AutoConverter
+                import io.github.jacksever.automapper.annotation.AutoMapper
+                import io.github.jacksever.automapper.annotation.AutoMapperModule
+
+                data class Source<T>(val payload: Array<T>)
+                data class Target(val payload: String)
+
+                object Converter {
+                    @AutoConverter
+                    inline fun <reified R> convert(value: R): String = R::class.simpleName.orEmpty()
+                }
+
+                @AutoMapperModule(converters = [Converter::class])
+                internal interface MapperModule {
+                    @AutoMapper(reversible = false)
+                    fun <T> map(source: Source<T>): Target
+                }
+                """,
+            expectedMessage = "No conversion available from 'Array<T>' to 'String'",
         )
     }
 
@@ -138,12 +367,12 @@ class ProcessorDiagnosticTest {
             symbolProcessorProviders = listOf(AutoMapperProcessorProvider()),
         ).execute()
 
+        val diagnostics = logger.errors.joinToString(separator = "\n")
+
         assertEquals(expected = KotlinSymbolProcessing.ExitCode.PROCESSING_ERROR, actual = result)
         assertTrue(
             actual = logger.errors.any { message -> expectedMessage in message },
-            message = "Expected diagnostic '$expectedMessage', got:\n${
-                logger.errors.joinToString(separator = "\n")
-            }",
+            message = "Expected diagnostic '$expectedMessage', got:\n$diagnostics",
         )
     }
 

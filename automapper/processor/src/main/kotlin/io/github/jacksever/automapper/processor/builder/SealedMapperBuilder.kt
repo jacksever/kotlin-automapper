@@ -18,15 +18,16 @@ package io.github.jacksever.automapper.processor.builder
 
 import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.symbol.ClassKind
-import com.google.devtools.ksp.symbol.KSClassDeclaration
-import com.google.devtools.ksp.symbol.Modifier
+import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.buildCodeBlock
-import com.squareup.kotlinpoet.ksp.toClassName
+import com.squareup.kotlinpoet.ksp.toTypeName
 import io.github.jacksever.automapper.annotation.DefaultValue
 import io.github.jacksever.automapper.annotation.PropertyMapping
 import io.github.jacksever.automapper.processor.helper.ParameterHelper.buildConstructorParameters
 import io.github.jacksever.automapper.processor.model.ConverterDefinition
+import io.github.jacksever.automapper.processor.model.MappingContext
+import io.github.jacksever.automapper.processor.model.MappingType
 
 /**
  * Strategy for generating mapping code for Sealed classes and interfaces
@@ -40,6 +41,7 @@ import io.github.jacksever.automapper.processor.model.ConverterDefinition
  */
 internal class SealedMapperBuilder(
     private val logger: KSPLogger,
+    private val context: MappingContext,
     private val defaultValues: List<DefaultValue>,
     private val converters: List<ConverterDefinition>,
     private val propertyMappings: List<PropertyMapping>,
@@ -47,6 +49,9 @@ internal class SealedMapperBuilder(
 
     /**
      * Validates the sealed hierarchies and generates an exhaustive `when` expression if they match
+     *
+     * A fallback branch covers nominal subclasses excluded by the receiver's generic arguments,
+     * because Kotlin can still require those unreachable cases for exhaustiveness
      *
      * Example output:
      * ```
@@ -58,80 +63,87 @@ internal class SealedMapperBuilder(
      * }
      * ```
      */
-    override fun buildConversion(from: KSClassDeclaration, to: KSClassDeclaration): CodeBlock =
+    override fun buildConversion(from: MappingType, to: MappingType): CodeBlock =
         buildCodeBlock {
-            val targetLeaves = collectLeafSubclasses(declaration = to)
-            val sourceLeaves = collectLeafSubclasses(declaration = from)
+            val targetLeaves = context.types.leaves(root = to)
+            val sourceLeaves = context.types.leaves(root = from)
 
-            val sourceLeafNames = sourceLeaves.map { leaf -> leaf.simpleName.asString() }.toSet()
+            val sourceLeafNames = sourceLeaves
+                .map { leaf -> leaf.declaration.simpleName.asString() }.toSet()
             val (classMappings, fieldMappings) = propertyMappings
                 .partition { property -> property.from in sourceLeafNames }
             val customClassMappings = classMappings
                 .associate { property -> property.from to property.to }
 
-            val targetLeafNames = targetLeaves.map { entry -> entry.simpleName.asString() }.toSet()
+            val targetLeafNames =
+                targetLeaves.map { entry -> entry.declaration.simpleName.asString() }.toSet()
             val missingInTarget = sourceLeaves.mapNotNull { sourceLeaf ->
-                val sourceName = sourceLeaf.simpleName.asString()
+                val sourceName = sourceLeaf.declaration.simpleName.asString()
                 val targetName = customClassMappings[sourceName] ?: sourceName
 
                 if (targetName !in targetLeafNames) sourceName else null
             }
+
             if (missingInTarget.isNotEmpty()) {
                 logger.error(
                     message = buildString {
-                        append("Cannot generate sealed mapper from ${from.simpleName.asString()} to ${to.simpleName.asString()}. ")
+                        append("Cannot generate sealed mapper from ${from.declaration.simpleName.asString()} to ${to.declaration.simpleName.asString()}. ")
                         append("Target hierarchy is missing implementations for: ${missingInTarget.joinToString()}. ")
                         append("Please ensure all leaf subclasses have a matching counterpart by name, or provide a @PropertyMapping for them")
                     },
-                    symbol = to
+                    symbol = to.declaration
                 )
                 error(message = "Sealed mapping failed due to mismatched hierarchies")
             }
 
             beginControlFlow(controlFlow = "return when (this)")
             sourceLeaves.forEach { source ->
-                val sourceName = source.simpleName.asString()
+                val sourceName = source.declaration.simpleName.asString()
                 val targetName = customClassMappings[sourceName] ?: sourceName
                 val targetSub = targetLeaves
-                    .first { target -> target.simpleName.asString() == targetName }
+                    .first { target -> target.declaration.simpleName.asString() == targetName }
 
-                if (source.classKind == ClassKind.OBJECT) {
-                    addStatement("%T -> %T", source.toClassName(), targetSub.toClassName())
+                if (source.declaration.classKind == ClassKind.OBJECT) {
+                    addStatement(
+                        "%T -> %T",
+                        source.type.toTypeName(typeParamResolver = context.typeParameters),
+                        targetSub.constructorType.toTypeName(typeParamResolver = context.typeParameters),
+                    )
                 } else {
                     val params = buildConstructorParameters(
+                        source = source,
                         logger = logger,
-                        sourceClass = source,
-                        targetClass = targetSub,
+                        context = context,
+                        target = targetSub,
                         converters = converters,
                         defaultValues = defaultValues,
                         propertyMappings = fieldMappings,
                     )
 
-                    add("is %T -> %T(\n", source.toClassName(), targetSub.toClassName())
+                    add(
+                        "is %T -> %T(\n",
+                        source.type.toTypeName(typeParamResolver = context.typeParameters),
+                        targetSub.constructorType.toTypeName(typeParamResolver = context.typeParameters),
+                    )
                     indent()
-                    params.forEach { param ->
-                        if (param.isNotEmpty()) {
+                    params
+                        .filter { parameter -> parameter.isNotEmpty() }
+                        .forEach { param ->
                             add(param)
                             add(",\n")
                         }
-                    }
                     unindent()
                     add(")\n")
                 }
             }
+
+            if (sourceLeaves.size < context.types.leafDeclarations(declaration = from.declaration).size) {
+                addStatement(
+                    "else -> throw %T(%S)",
+                    ClassName("kotlin", "IllegalStateException"),
+                    "Unexpected sealed subtype for ${from.type}"
+                )
+            }
             endControlFlow()
         }
-
-    /**
-     * Recursively collects all leaf subclasses (concrete classes or objects) of a sealed class/interface
-     */
-    private fun collectLeafSubclasses(declaration: KSClassDeclaration): List<KSClassDeclaration> {
-        if (!declaration.modifiers.contains(element = Modifier.SEALED)) {
-            return listOf(declaration)
-        }
-
-        return declaration.getSealedSubclasses()
-            .toList()
-            .flatMap(transform = ::collectLeafSubclasses)
-    }
 }

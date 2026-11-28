@@ -19,10 +19,12 @@ package io.github.jacksever.automapper.processor.builder
 import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.symbol.ClassKind
 import com.google.devtools.ksp.symbol.KSClassDeclaration
+import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.buildCodeBlock
 import com.squareup.kotlinpoet.ksp.toClassName
 import io.github.jacksever.automapper.annotation.PropertyMapping
+import io.github.jacksever.automapper.processor.model.MappingType
 
 /**
  * Strategy for generating mapping code for Enum classes
@@ -48,10 +50,10 @@ internal class EnumMapperBuilder(
      * }
      * ```
      */
-    override fun buildConversion(from: KSClassDeclaration, to: KSClassDeclaration): CodeBlock =
+    override fun buildConversion(from: MappingType, to: MappingType): CodeBlock =
         buildCodeBlock {
-            val fromEntries = from.enumEntryNames()
-            val toEntries = to.enumEntryNames()
+            val fromEntries = from.declaration.enumEntryNames()
+            val toEntries = to.declaration.enumEntryNames()
 
             val customMappings =
                 propertyMappings.associate { property -> property.from to property.to }
@@ -63,21 +65,21 @@ internal class EnumMapperBuilder(
                 if (targetEntryName in toEntries) {
                     addStatement(
                         "%T.%N -> %T.%N",
-                        from.toClassName(),
+                        from.declaration.toClassName(),
                         sourceEntryName,
-                        to.toClassName(),
+                        to.declaration.toClassName(),
                         targetEntryName
                     )
                 } else {
                     val errorMessage =
-                        "Enum constant ${from.simpleName.asString()}.$sourceEntryName has no matching constant in ${to.simpleName.asString()}"
-                    logger.warn(message = errorMessage, symbol = from)
+                        "Enum constant ${from.declaration.simpleName.asString()}.$sourceEntryName has no matching constant in ${to.declaration.simpleName.asString()}"
+                    logger.warn(message = errorMessage, symbol = from.declaration)
 
                     addStatement(
                         "%T.%N -> throw %T(%S)",
-                        from.toClassName(),
+                        from.declaration.toClassName(),
                         sourceEntryName,
-                        IllegalArgumentException::class,
+                        ClassName("kotlin", "IllegalArgumentException"),
                         errorMessage
                     )
                 }

@@ -20,6 +20,8 @@ import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.symbol.KSAnnotation
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFunctionDeclaration
+import com.google.devtools.ksp.symbol.KSType
+import com.google.devtools.ksp.symbol.KSTypeParameter
 import io.github.jacksever.automapper.annotation.DefaultValue
 import io.github.jacksever.automapper.annotation.DefaultValueSource
 import io.github.jacksever.automapper.annotation.PropertyMapping
@@ -29,6 +31,7 @@ import io.github.jacksever.automapper.processor.extension.getAnnotations
 import io.github.jacksever.automapper.processor.extension.stringArg
 import io.github.jacksever.automapper.processor.model.ConverterDefinition
 import io.github.jacksever.automapper.processor.model.MapperDefinition
+import io.github.jacksever.automapper.processor.resolver.MappingTypeResolver
 
 /**
  * A common interface for collecting Mapper Definitions
@@ -38,12 +41,14 @@ internal interface MapperDefinitionCollector {
     /**
      * Collects all the necessary info to create a mapper from a function declaration
      *
+     * @param types resolver for the current KSP round
      * @param function function declaration to process
      * @param mapperAnnotation specific `@AutoMapper` annotation instance
      * @param converters list of custom converter functions available for this mapping
      * @return Valid [MapperDefinition] or null if validation fails
      */
     fun collectMapperDefinition(
+        types: MappingTypeResolver,
         function: KSFunctionDeclaration,
         mapperAnnotation: KSAnnotation,
         converters: List<ConverterDefinition>,
@@ -59,6 +64,7 @@ internal class MapperDefinitionCollectorImpl(
 ) : MapperDefinitionCollector {
 
     override fun collectMapperDefinition(
+        types: MappingTypeResolver,
         function: KSFunctionDeclaration,
         mapperAnnotation: KSAnnotation,
         converters: List<ConverterDefinition>,
@@ -87,28 +93,34 @@ internal class MapperDefinitionCollectorImpl(
             }
             .toList()
 
-        check(parameters.size == 1) {
+        check(value = parameters.size == 1) {
             "Function '$functionName' annotated with @AutoMapper must have exactly one parameter representing the source object"
         }
 
         val sourceParam = parameters.first()
         val sourceType = sourceParam.type.resolve()
-        val targetType = requireNotNull(function.returnType?.resolve()) {
+        val targetType = requireNotNull(value = function.returnType?.resolve()) {
             "Function '$functionName' annotated with @AutoMapper must declare a return type representing the target object"
         }
-        val sourceClass = requireNotNull(sourceType.declaration as? KSClassDeclaration) {
-            "Source type '$sourceType' in function '$functionName' must be a class"
+        val source = types.resolve(type = sourceType)
+        val target = types.resolve(type = targetType)
+        check(value = !source.type.isMarkedNullable && !target.type.isMarkedNullable) {
+            "Mapper '$functionName' must use non-nullable source and target types; property types may be nullable"
         }
-        val targetClass = requireNotNull(targetType.declaration as? KSClassDeclaration) {
-            "Target type '$targetType' in function '$functionName' must be a class"
-        }
+        val typeParameters = collectTypeParameters(
+            function = function,
+            source = source.type,
+            target = target.type,
+        )
 
         MapperDefinition(
-            source = sourceClass,
-            target = targetClass,
+            source = source,
+            target = target,
+            name = functionName,
             converters = converters,
             reversible = reversible,
             defaultValues = defaultValues,
+            typeParameters = typeParameters,
             propertyMappings = propertyMappings,
         )
     }.onFailure { throwable ->
@@ -117,4 +129,40 @@ internal class MapperDefinitionCollectorImpl(
             symbol = function
         )
     }.getOrNull()
+
+    /**
+     * Collects only variables referenced by the mapping signature or their upper bounds
+     *
+     * Unused enclosing module parameters must not become generated function parameters, because
+     * callers would otherwise be unable to infer them from the receiver or result
+     */
+    private fun collectTypeParameters(
+        source: KSType,
+        target: KSType,
+        function: KSFunctionDeclaration,
+    ): List<KSTypeParameter> {
+        val owners = generateSequence(seed = function.parentDeclaration) { declaration ->
+            declaration.parentDeclaration
+        }.toList().asReversed()
+        val candidates = owners.filterIsInstance<KSClassDeclaration>()
+            .flatMap { owner -> owner.typeParameters } + function.typeParameters
+        val required = linkedSetOf<KSTypeParameter>()
+
+        fun visit(type: KSType) {
+            val parameter = type.declaration as? KSTypeParameter
+
+            if (parameter != null && parameter in candidates && required.add(element = parameter)) {
+                parameter.bounds.forEach { bound -> visit(type = bound.resolve()) }
+            }
+
+            type.arguments.forEach { argument ->
+                argument.type?.resolve()?.let { argumentType -> visit(type = argumentType) }
+            }
+        }
+
+        visit(type = source)
+        visit(type = target)
+
+        return candidates.filter { parameter -> parameter in required }.distinct()
+    }
 }

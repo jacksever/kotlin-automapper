@@ -20,9 +20,12 @@ import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.symbol.ClassKind
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSType
+import com.google.devtools.ksp.symbol.KSValueParameter
 import com.squareup.kotlinpoet.CodeBlock
+import com.squareup.kotlinpoet.MemberName
 import com.squareup.kotlinpoet.buildCodeBlock
 import com.squareup.kotlinpoet.ksp.toClassName
+import com.squareup.kotlinpoet.ksp.toTypeName
 import io.github.jacksever.automapper.annotation.DefaultValue
 import io.github.jacksever.automapper.annotation.DefaultValueSource.INLINE
 import io.github.jacksever.automapper.annotation.DefaultValueSource.PARAMETER
@@ -33,11 +36,13 @@ import io.github.jacksever.automapper.processor.converter.ObjectConverter
 import io.github.jacksever.automapper.processor.converter.PrimitiveConverter
 import io.github.jacksever.automapper.processor.exception.MappingException
 import io.github.jacksever.automapper.processor.exception.RecursiveMappingException
-import io.github.jacksever.automapper.processor.extension.asMemberName
 import io.github.jacksever.automapper.processor.extension.isAssignableConsideringNullability
 import io.github.jacksever.automapper.processor.formatter.DefaultValueFormatter.format
 import io.github.jacksever.automapper.processor.logger.FailableMappingLogger
 import io.github.jacksever.automapper.processor.model.ConverterDefinition
+import io.github.jacksever.automapper.processor.model.MappingContext
+import io.github.jacksever.automapper.processor.model.MappingType
+import io.github.jacksever.automapper.processor.model.ResolvedConverter
 
 /**
  * Helper object for generating constructor parameters and handling type conversions
@@ -52,8 +57,9 @@ internal object ParameterHelper {
      * based on properties from the source class, applying custom mappings
      *
      * @param logger KSP logger
-     * @param sourceClass source class declaration
-     * @param targetClass target class declaration
+     * @param source resolved source type
+     * @param target resolved target type
+     * @param context shared type scope and converter usage for this generated function
      * @param defaultValues list of default value mappings
      * @param converters list of custom converter functions available for this mapping
      * @param propertyMappings list of custom property mappings
@@ -61,189 +67,165 @@ internal object ParameterHelper {
      */
     fun buildConstructorParameters(
         logger: KSPLogger,
-        sourceClass: KSClassDeclaration,
-        targetClass: KSClassDeclaration,
+        source: MappingType,
+        target: MappingType,
+        context: MappingContext,
         defaultValues: List<DefaultValue> = emptyList(),
         converters: List<ConverterDefinition> = emptyList(),
         propertyMappings: List<PropertyMapping> = emptyList(),
-    ): List<CodeBlock> = buildList {
-        val targetConstructor = targetClass.primaryConstructor
-        val sourceProperties = sourceClass.getAllProperties()
+    ): List<CodeBlock> {
+        val targetConstructor = checkNotNull(value = target.declaration.primaryConstructor) {
+            "Target class ${target.declaration.simpleName.asString()} must have a primary constructor"
+        }
+        val sourceProperties = source.declaration.getAllProperties()
             .associateBy { property -> property.simpleName.asString() }
         val defaultValuesByName = defaultValues.associateBy { value -> value.property }
 
-        checkNotNull(value = targetConstructor) {
-            "Target class ${targetClass.simpleName.asString()} must have a primary constructor"
-        }
-
-        targetConstructor.parameters.forEach { targetParameter ->
+        return targetConstructor.parameters.mapNotNull { targetParameter ->
             val targetParameterName = checkNotNull(value = targetParameter.name?.asString()) {
-                "Unnamed constructor parameter in ${targetClass.simpleName.asString()}"
+                "Unnamed constructor parameter in ${target.declaration.simpleName.asString()}"
             }
-
             val mapping =
                 propertyMappings.firstOrNull { mapping -> mapping.to == targetParameterName }
             val sourceParameterName = mapping?.from ?: targetParameterName
             val sourceProperty = sourceProperties[sourceParameterName]
             val defaultValue = defaultValuesByName[targetParameterName]
+            val targetType = target.parameterType(parameter = targetParameter)
 
             when {
                 sourceProperty != null -> {
-                    val sourceType = sourceProperty.type.resolve()
-                    val targetType = targetParameter.type.resolve()
-
-                    // Explicit custom converter has the highest priority
-                    val explicitConverter = findConverter(
+                    val sourceType = source.propertyType(property = sourceProperty)
+                    val converter = findConverter(
                         logger = logger,
                         to = targetType,
                         from = sourceType,
+                        context = context,
                         converters = converters,
                     )
+                    val isShadowed = defaultValue != null && defaultValue.source != INLINE &&
+                            targetParameterName == sourceParameterName
 
-                    val isShadowed = defaultValue?.let { value ->
-                        value.source != INLINE && targetParameterName == sourceParameterName
-                    } ?: false
-
-                    if (explicitConverter != null) {
-                        add(
-                            buildConverterAssignment(
-                                sourceType = sourceType,
-                                targetType = targetType,
-                                isShadowed = isShadowed,
-                                defaultValue = defaultValue,
-                                converter = explicitConverter,
-                                sourceParameterName = sourceParameterName,
-                                targetParameterName = targetParameterName,
-                            )
+                    if (converter != null) {
+                        buildConverterAssignment(
+                            converter = converter,
+                            sourceType = sourceType,
+                            targetType = targetType,
+                            isShadowed = isShadowed,
+                            defaultValue = defaultValue,
+                            sourceParameterName = sourceParameterName,
+                            targetParameterName = targetParameterName,
                         )
                     } else {
-                        // Built-in conversions
+                        val sourceName = CodeBlock.of(
+                            if (isShadowed) "this.%N" else "%N",
+                            sourceParameterName,
+                        )
                         val conversion = getConversionExpression(
                             logger = logger,
+                            context = context,
                             sourceType = sourceType,
                             targetType = targetType,
                             converters = converters,
                             defaultValue = defaultValue,
                         )
 
-                        add(
-                            buildCodeBlock {
-                                val sourceName = CodeBlock.of(
-                                    if (isShadowed) "this.%N" else "%N",
-                                    sourceParameterName
-                                )
-
-                                add(
-                                    "%N = %L%L",
-                                    targetParameterName,
-                                    sourceName,
-                                    conversion
-                                )
-                            }
-                        )
+                        CodeBlock.of("%N = %L%L", targetParameterName, sourceName, conversion)
                     }
                 }
 
-                defaultValue != null -> {
-                    when (defaultValue.source) {
-                        INLINE -> {
-                            add(
-                                buildCodeBlock {
-                                    add(
-                                        "%N = %L",
-                                        targetParameterName,
-                                        format(
-                                            targetType = targetParameter.type.resolve(),
-                                            defaultValue = defaultValue.value
-                                        )
-                                    )
-                                }
-                            )
-                        }
+                defaultValue != null -> CodeBlock.of(
+                    "%N = %L",
+                    targetParameterName,
+                    defaultValue.toExpression(targetType = targetType),
+                )
 
-                        PARAMETER,
-                        PARAMETER_WITH_DEFAULT -> {
-                            add(
-                                buildCodeBlock {
-                                    add(
-                                        "%N = %N",
-                                        targetParameterName,
-                                        targetParameterName
-                                    )
-                                }
-                            )
-                        }
-                    }
-                }
+                targetParameter.hasDefault -> null
+                targetType.isMarkedNullable -> CodeBlock.of("%N = null", targetParameterName)
 
-                targetParameter.hasDefault -> {
-                    /* Do nothing, let the compiler use the default value */
-                }
-
-                targetParameter.type.resolve().isMarkedNullable -> {
-                    add(buildCodeBlock { add("%N = null", targetParameterName) })
-                }
-
-                else -> {
-                    // If no direct mapping is found, attempt recursive mapping for complex objects
-                    val targetParameterType = targetParameter.type.resolve()
-                    val targetParameterClass =
-                        targetParameterType.declaration as? KSClassDeclaration
-
-                    if (targetParameterClass.isEligibleForRecursiveMapping()) {
-                        runCatching {
-                            val mappingLogger = FailableMappingLogger(delegate = logger)
-                            val nestedParameters = buildConstructorParameters(
-                                logger = mappingLogger,
-                                converters = converters,
-                                sourceClass = sourceClass,
-                                defaultValues = emptyList(),
-                                propertyMappings = emptyList(),
-                                targetClass = requireNotNull(targetParameterClass),
-                            )
-
-                            buildCodeBlock {
-                                add(
-                                    "%N = %T(\n",
-                                    targetParameterName,
-                                    targetParameterClass.toClassName()
-                                )
-                                indent()
-                                nestedParameters.forEach { param ->
-                                    if (param.isNotEmpty()) {
-                                        addStatement("%L,", param)
-                                    }
-                                }
-                                unindent()
-                                add(")")
-                            }
-                        }.onSuccess { mapping ->
-                            add(mapping)
-                        }.onFailure { throwable ->
-                            val errorMessage = buildString {
-                                append("Cannot map property '$targetParameterName' for ${targetClass.qualifiedName?.asString()}. ")
-
-                                when (throwable) {
-                                    is RecursiveMappingException -> append("Recursive mapping failed. See the previous error for details")
-                                    else -> append("Recursive mapping failed: ${throwable.message}")
-                                }
-                            }
-                            logger.error(message = errorMessage, symbol = targetParameter)
-
-                            throw MappingException(message = errorMessage, cause = throwable)
-                        }
-                    } else {
-                        val errorMessage = buildString {
-                            append("Cannot map property '$targetParameterName' for ${targetClass.qualifiedName?.asString()}. ")
-                            append("No matching property found in ${sourceClass.qualifiedName?.asString()} and no default value is provided")
-                        }
-                        logger.error(message = errorMessage, symbol = targetParameter)
-
-                        throw MappingException(message = errorMessage)
-                    }
-                }
+                else -> buildRecursiveAssignment(
+                    logger = logger,
+                    source = source,
+                    target = target,
+                    context = context,
+                    targetType = targetType,
+                    converters = converters,
+                    targetParameter = targetParameter,
+                )
             }
         }
+    }
+
+    /**
+     * Constructs a missing nested property from the current source's properties
+     *
+     * A separate logger retains the nested error details while the outer diagnostic identifies
+     * the target property. The resolved nested type is shared by parameter and constructor generation
+     */
+    private fun buildRecursiveAssignment(
+        logger: KSPLogger,
+        targetType: KSType,
+        source: MappingType,
+        target: MappingType,
+        context: MappingContext,
+        targetParameter: KSValueParameter,
+        converters: List<ConverterDefinition>,
+    ): CodeBlock {
+        val propertyName = checkNotNull(value = targetParameter.name).asString()
+        val targetClass = targetType.declaration as? KSClassDeclaration
+
+        if (!targetClass.isEligibleForRecursiveMapping()) {
+            val message = buildString {
+                append("Cannot map property '$propertyName' for ${target.declaration.qualifiedName?.asString()}. ")
+                append("No matching property found in ${source.declaration.qualifiedName?.asString()} and no default value is provided")
+            }
+
+            logger.error(message = message, symbol = targetParameter)
+            throw MappingException(message = message)
+        }
+
+        return runCatching {
+            val nestedTarget = context.types.resolve(type = targetType)
+            val parameters = buildConstructorParameters(
+                source = source,
+                context = context,
+                target = nestedTarget,
+                converters = converters,
+                logger = FailableMappingLogger(delegate = logger),
+            )
+
+            buildCodeBlock {
+                add(
+                    "%N = %T(\n",
+                    propertyName,
+                    nestedTarget.constructorType.toTypeName(typeParamResolver = context.typeParameters),
+                )
+                indent()
+                parameters
+                    .filter { expression -> expression.isNotEmpty() }
+                    .forEach { parameter -> addStatement("%L,", parameter) }
+                unindent()
+                add(")")
+            }
+        }.getOrElse { throwable ->
+            val message = buildString {
+                append("Cannot map property '$propertyName' for ${target.declaration.qualifiedName?.asString()}. ")
+                when (throwable) {
+                    is RecursiveMappingException -> append("Recursive mapping failed. See the previous error for details")
+                    else -> append("Recursive mapping failed: ${throwable.message}")
+                }
+            }
+
+            logger.error(message = message, symbol = targetParameter)
+            throw MappingException(message = message, cause = throwable)
+        }
+    }
+
+    /**
+     * Resolves an inline fallback or a reference to a runtime default parameter
+     */
+    private fun DefaultValue.toExpression(targetType: KSType): CodeBlock = when (source) {
+        INLINE -> format(targetType = targetType, defaultValue = value)
+        PARAMETER, PARAMETER_WITH_DEFAULT -> CodeBlock.of("%N", property)
     }
 
     /**
@@ -260,7 +242,7 @@ internal object ParameterHelper {
         sourceParameterName: String,
         targetParameterName: String,
         defaultValue: DefaultValue?,
-        converter: ConverterDefinition,
+        converter: ResolvedConverter,
     ): CodeBlock {
         val sourceName = CodeBlock.of(
             if (isShadowed) "this.%N" else "%N",
@@ -285,9 +267,12 @@ internal object ParameterHelper {
         targetType: KSType,
         sourceName: CodeBlock,
         defaultValue: DefaultValue?,
-        converter: ConverterDefinition,
+        converter: ResolvedConverter,
     ): CodeBlock {
-        val member = converter.function.asMemberName()
+        val member = MemberName(
+            enclosingClassName = converter.definition.owner.toClassName(),
+            simpleName = converter.definition.function.simpleName.asString(),
+        )
 
         // Use ?.let if source is nullable but converter input is not
         val needsSafeCall = sourceType.isMarkedNullable && !converter.from.isMarkedNullable
@@ -310,21 +295,11 @@ internal object ParameterHelper {
             add(baseCall)
 
             if (needsFallback) {
-                defaultValue?.let { default ->
-                    when (default.source) {
-                        INLINE -> {
-                            add(
-                                " ?: %L",
-                                format(targetType = targetType, defaultValue = default.value)
-                            )
-                        }
-
-                        PARAMETER,
-                        PARAMETER_WITH_DEFAULT -> {
-                            add(" ?: %N", default.property)
-                        }
-                    }
-                } ?: add("!!")
+                if (defaultValue != null) {
+                    add(" ?: %L", defaultValue.toExpression(targetType = targetType))
+                } else {
+                    add("!!")
+                }
             }
         }
     }
@@ -337,12 +312,14 @@ internal object ParameterHelper {
         logger: KSPLogger,
         sourceType: KSType,
         targetType: KSType,
+        context: MappingContext,
         converters: List<ConverterDefinition>,
     ): CodeBlock {
         val converter = findConverter(
             logger = logger,
             to = targetType,
             from = sourceType,
+            context = context,
             converters = converters,
         )
 
@@ -352,12 +329,13 @@ internal object ParameterHelper {
                 converter = converter,
                 sourceType = sourceType,
                 targetType = targetType,
-                sourceName = CodeBlock.of("value"),
+                sourceName = CodeBlock.of(format = "value"),
             )
         }
 
         val conversion = getConversionExpression(
             logger = logger,
+            context = context,
             defaultValue = null,
             sourceType = sourceType,
             targetType = targetType,
@@ -374,70 +352,60 @@ internal object ParameterHelper {
         logger: KSPLogger,
         sourceType: KSType,
         targetType: KSType,
+        context: MappingContext,
         converters: List<ConverterDefinition>,
         defaultValue: DefaultValue?,
     ): CodeBlock {
         // Exact collection types can still require element converters.
         if (sourceType == targetType && converters.isEmpty()) return CodeBlock.of("")
 
-        // 1. Try Primitive Conversion
-        var conversion = PrimitiveConverter.getConversion(from = sourceType, to = targetType)
-
-        // 2. Try Collection Conversion
-        if (conversion.isEmpty()) {
-            conversion = CollectionConverter.getConversion(
+        val conversion = PrimitiveConverter.getConversion(from = sourceType, to = targetType)
+            .takeIf { expression -> expression.isNotEmpty() }
+            ?: CollectionConverter.getConversion(
                 sourceType = sourceType,
                 targetType = targetType,
                 getInnerConversion = { sourceElementType, targetElementType ->
                     buildCollectionElementConversion(
                         logger = logger,
+                        context = context,
                         converters = converters,
                         sourceType = sourceElementType,
                         targetType = targetElementType,
                     )
                 },
-            )
-        }
-
-        // 3. Try Object Conversion
-        if (conversion.isEmpty()) {
-            conversion = ObjectConverter.getConversion(
+            ).takeIf { expression -> expression.isNotEmpty() }
+            ?: ObjectConverter.getConversion(
                 sourceType = sourceType,
                 targetType = targetType,
+                types = context.types,
             )
+
+        if (conversion.isEmpty() && !targetType.isAssignableConsideringNullability(from = sourceType)) {
+            val message =
+                "No conversion available from '$sourceType' to '$targetType'. Provide an @AutoConverter or a matching mapper"
+
+            logger.error(message = message, symbol = sourceType.declaration)
+            throw MappingException(message = message)
         }
 
-        // 4. Handle Nullability
-        if (sourceType.isMarkedNullable) {
-            if (!targetType.isMarkedNullable) {
-                return buildCodeBlock {
-                    defaultValue?.let { default ->
-                        val fallback = when (default.source) {
-                            INLINE -> {
-                                format(targetType = targetType, defaultValue = default.value)
-                            }
+        return when {
+            !sourceType.isMarkedNullable -> conversion
+            targetType.isMarkedNullable -> {
+                if (conversion.isEmpty()) conversion else CodeBlock.of("?%L", conversion)
+            }
 
-                            PARAMETER,
-                            PARAMETER_WITH_DEFAULT -> {
-                                CodeBlock.of("%N", default.property)
-                            }
-                        }
+            defaultValue == null -> CodeBlock.of("!!%L", conversion)
 
-                        if (conversion.isNotEmpty()) {
-                            add("?%L ?: %L", conversion, fallback)
-                        } else {
-                            add(" ?: %L", fallback)
-                        }
-                    } ?: add("!!%L", conversion)
-                }
-            } else {
-                if (conversion.isNotEmpty()) {
-                    return buildCodeBlock { add("?%L", conversion) }
+            else -> {
+                val fallback = defaultValue.toExpression(targetType = targetType)
+
+                if (conversion.isEmpty()) {
+                    CodeBlock.of(" ?: %L", fallback)
+                } else {
+                    CodeBlock.of("?%L ?: %L", conversion, fallback)
                 }
             }
         }
-
-        return conversion
     }
 
     /**
@@ -447,21 +415,24 @@ internal object ParameterHelper {
      * compatible. If multiple converters match, it selects the most specific one based on
      * two criteria: nullability match and type specificity
      *
-     * @return the best matching [ConverterDefinition], or `null` if no suitable converter is found
+     * @return the best matching [ResolvedConverter], or `null` if no suitable converter is found
      */
     private fun findConverter(
-        logger: KSPLogger,
         from: KSType,
         to: KSType,
+        logger: KSPLogger,
+        context: MappingContext,
         converters: List<ConverterDefinition>,
-    ): ConverterDefinition? {
-        val candidates = converters.filter { converter ->
-            converter.from.isAssignableConsideringNullability(from = from) &&
-                    to.isAssignableConsideringNullability(from = converter.to)
+    ): ResolvedConverter? {
+        val candidates = converters.mapNotNull { converter ->
+            context.converterResolver.resolve(converter = converter, from = from, to = to)
         }
 
         if (candidates.isEmpty()) return null
-        if (candidates.size == 1) return candidates.first()
+        if (candidates.size == 1) {
+            return candidates.first()
+                .also { converter -> context.usedConverters += converter.definition }
+        }
 
         // Prioritize converters that match the nullability of the 'from' parameter to avoid `?.let`
         val preferred = candidates
@@ -469,20 +440,29 @@ internal object ParameterHelper {
             .takeIf { list -> list.isNotEmpty() }
             ?: candidates
 
-        val best = preferred.maxWith(comparator = specificityComparator)
+        val comparator = Comparator<ResolvedConverter> { first, second ->
+            when {
+                first == second -> 0
+                first.isMoreSpecificThan(other = second, context = context) -> 1
+                second.isMoreSpecificThan(other = first, context = context) -> -1
+                else -> 0
+            }
+        }
+        val best = preferred.maxWith(comparator = comparator)
         val ambiguous = preferred.any { definition ->
-            definition != best && !definition.isMoreSpecificThan(other = best)
+            definition != best && !best.isMoreSpecificThan(other = definition, context = context)
         }
 
-        return if (ambiguous) {
+        val selected = if (ambiguous) {
             val names = preferred.joinToString { definition ->
-                definition.function.qualifiedName?.asString().orEmpty()
+                definition.definition.function.qualifiedName?.asString().orEmpty()
             }
+
             logger.warn(
                 message = buildString {
                     append("Ambiguous converters found for mapping $from -> $to. ")
                     append("Candidates: $names. ")
-                    append("Using the first one found: ${preferred.first().function.qualifiedName?.asString()}")
+                    append("Using the first one found: ${preferred.first().definition.function.qualifiedName?.asString()}")
                 }
             )
 
@@ -490,36 +470,32 @@ internal object ParameterHelper {
         } else {
             best
         }
+
+        context.usedConverters += selected.definition
+
+        return selected
     }
 
     /**
-     * A comparator for sorting ConverterDefinition instances by specificity
+     * Compares instantiated signatures, then their original generic constraints when types match
      */
-    private val specificityComparator = Comparator<ConverterDefinition> { a, b ->
-        when {
-            a == b -> 0
-            a.isMoreSpecificThan(other = b) -> 1
-            b.isMoreSpecificThan(other = a) -> -1
-            else -> 0
-        }
-    }
+    private fun ResolvedConverter.isMoreSpecificThan(
+        context: MappingContext,
+        other: ResolvedConverter,
+    ): Boolean {
+        if (!other.from.isAssignableFrom(that = from) || !other.to.isAssignableFrom(that = to)) return false
+        if (from != other.from || to != other.to) return true
 
-    /**
-     * Determines if this [ConverterDefinition] is more specific than another one
-     *
-     * A converter is more specific if its `from` type is a subtype of the other's `from` type,
-     * and its `to` type is a subtype of the other's `to` type
-     */
-    private fun ConverterDefinition.isMoreSpecificThan(other: ConverterDefinition): Boolean =
-        other.from.isAssignableFrom(that = from) && other.to.isAssignableFrom(that = to)
+        return context.converterResolver.isMoreSpecific(
+            first = definition,
+            second = other.definition,
+        )
+    }
 
     /**
      * Checks if a class is eligible for recursive mapping
      */
-    private fun KSClassDeclaration?.isEligibleForRecursiveMapping(): Boolean {
-        if (this == null) return false
-
-        return primaryConstructor != null && classKind == ClassKind.CLASS &&
+    private fun KSClassDeclaration?.isEligibleForRecursiveMapping(): Boolean =
+        this != null && primaryConstructor != null && classKind == ClassKind.CLASS &&
                 !packageName.asString().startsWith(prefix = "kotlin")
-    }
 }

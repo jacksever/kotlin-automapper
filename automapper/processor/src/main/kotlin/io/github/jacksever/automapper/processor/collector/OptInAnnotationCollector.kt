@@ -17,14 +17,14 @@
 package io.github.jacksever.automapper.processor.collector
 
 import com.google.devtools.ksp.processing.KSPLogger
-import com.google.devtools.ksp.symbol.KSAnnotation
+import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSType
-import com.google.devtools.ksp.symbol.Modifier
 import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.ksp.toClassName
-import io.github.jacksever.automapper.processor.model.MapperDefinition
+import io.github.jacksever.automapper.processor.model.MappingContext
+import io.github.jacksever.automapper.processor.model.MappingType
 
 /**
  * A common interface for collecting OptIn annotations
@@ -34,15 +34,15 @@ internal interface OptInAnnotationCollector {
     /**
      * Collects all required opt-in markers and builds a single [AnnotationSpec] for the `@OptIn` annotation
      *
-     * @param definition [MapperDefinition] for the current mapping
-     * @param source source class declaration
-     * @param target target class declaration
+     * @param source resolved source type
+     * @param target resolved target type
+     * @param context converters recorded during expression generation
      * @return [AnnotationSpec] for the `@OptIn` annotation or null if no opt-in markers are found
      */
     fun collectOptInAnnotations(
-        definition: MapperDefinition,
-        source: KSClassDeclaration,
-        target: KSClassDeclaration,
+        source: MappingType,
+        target: MappingType,
+        context: MappingContext,
     ): AnnotationSpec?
 }
 
@@ -56,82 +56,41 @@ internal class OptInAnnotationCollectorImpl(
 ) : OptInAnnotationCollector {
 
     override fun collectOptInAnnotations(
-        definition: MapperDefinition,
-        source: KSClassDeclaration,
-        target: KSClassDeclaration,
+        source: MappingType,
+        target: MappingType,
+        context: MappingContext,
     ): AnnotationSpec? {
-        val optInMarkers = mutableSetOf<KSType>()
+        val declarations = (listOf(source, target) + context.types.leaves(root = source) +
+                context.types.leaves(root = target))
+            .map { type -> type.declaration }
+            .distinct()
 
-        // Collect all reachable declarations from sealed hierarchies
-        val sourceDeclarations = getAllDeclarations(root = source)
-        val targetDeclarations = getAllDeclarations(root = target)
-
-        // Collect OptIn markers from declarations and their properties
-        (sourceDeclarations + targetDeclarations).forEach { declaration ->
-            collectOptInMarkers(annotations = declaration.annotations, out = optInMarkers)
-
-            declaration.getAllProperties().forEach { property ->
-                collectOptInMarkers(annotations = property.annotations, out = optInMarkers)
+        val annotatedSymbols = sequence {
+            declarations.forEach { declaration ->
+                yield(value = declaration)
+                yieldAll(sequence = declaration.getAllProperties())
             }
-        }
 
-        logger.info(message = "OptInAnnotationCollector: Found ${optInMarkers.size} markers after scanning declarations and properties")
-
-        // Prepare fast lookup structures
-        val sourceDataClasses = sourceDeclarations
-            .filter { declaration -> Modifier.DATA in declaration.modifiers }
-            .associateBy { declaration -> declaration.simpleName.asString() }
-
-        val targetDataClasses = targetDeclarations
-            .filter { declaration -> Modifier.DATA in declaration.modifiers }
-
-        val convertersByType = definition.converters.associateBy { converter ->
-            converter.from.makeNotNullable() to converter.to.makeNotNullable()
-        }
-
-        // Check converters between corresponding data classes
-        targetDataClasses.forEach { targetData ->
-            val sourceData = sourceDataClasses[targetData.simpleName.asString()] ?: return@forEach
-            val sourceProperties = sourceData.getAllProperties()
-                .associateBy { property -> property.simpleName.asString() }
-            val targetParams = targetData.primaryConstructor?.parameters.orEmpty()
-
-            targetParams.forEach { targetParam ->
-                val targetName = targetParam.name?.asString() ?: return@forEach
-
-                val sourceName = definition.propertyMappings
-                    .find { mapping -> mapping.to == targetName }
-                    ?.from ?: targetName
-
-                val sourceProperty = sourceProperties[sourceName] ?: return@forEach
-
-                val sourceType = sourceProperty.type.resolve().makeNotNullable()
-                val targetType = targetParam.type.resolve().makeNotNullable()
-
-                if (sourceType == targetType) return@forEach
-
-                val converter = convertersByType[sourceType to targetType] ?: return@forEach
-
-                collectOptInMarkers(
-                    out = optInMarkers,
-                    annotations = converter.function.annotations
-                )
-
-                (converter.function.parent as? KSClassDeclaration)?.let { parent ->
-                    collectOptInMarkers(annotations = parent.annotations, out = optInMarkers)
+            context.usedConverters.forEach { converter ->
+                yield(value = converter.function)
+                yield(value = converter.owner)
+                (converter.function.parentDeclaration as? KSClassDeclaration)?.let { owner ->
+                    yield(value = owner)
                 }
             }
         }
 
-        if (optInMarkers.isEmpty()) {
+        val classNames = annotatedSymbols
+            .flatMap { symbol -> symbol.optInMarkers() }
+            .map { marker -> marker.toClassName() }
+            .distinct()
+            .sortedBy { className -> className.canonicalName }
+            .toList()
+
+        if (classNames.isEmpty()) {
             logger.info(message = "OptInAnnotationCollector: No markers found. Skipping annotation")
             return null
         }
-
-        val classNames = optInMarkers
-            .map { type -> type.toClassName() }
-            .distinct()
-            .sortedBy { className -> className.canonicalName }
 
         val format = classNames.joinToString { "%T::class" }
 
@@ -141,40 +100,15 @@ internal class OptInAnnotationCollectorImpl(
     }
 
     /**
-     * Extracts OptIn marker types from annotations and adds them to [out]
+     * Extracts the marker types explicitly listed by this symbol's `@OptIn` annotations
      */
-    private fun collectOptInMarkers(annotations: Sequence<KSAnnotation>, out: MutableSet<KSType>) {
-        annotations.forEach { annotation ->
-            val declaration = annotation.annotationType.resolve().declaration
-            if (declaration.qualifiedName?.asString() != "kotlin.OptIn") return@forEach
-
-            val markers = annotation.arguments.firstOrNull()?.value as? List<*>
-
-            markers
-                ?.filterIsInstance<KSType>()
-                ?.forEach(action = out::add)
+    private fun KSAnnotated.optInMarkers(): Sequence<KSType> = annotations
+        .filter { annotation ->
+            annotation.annotationType.resolve().declaration.qualifiedName?.asString() == "kotlin.OptIn"
         }
-    }
-
-    /**
-     * Traverses a class hierarchy starting from a given [root] declaration and collects all reachable
-     * class declarations
-     */
-    private fun getAllDeclarations(root: KSClassDeclaration): Set<KSClassDeclaration> {
-        val result = mutableSetOf<KSClassDeclaration>()
-        val stack = ArrayDeque<KSClassDeclaration>()
-
-        stack += root
-
-        while (stack.isNotEmpty()) {
-            val current = stack.removeFirst()
-            if (!result.add(current)) continue
-
-            if (Modifier.SEALED in current.modifiers) {
-                current.getSealedSubclasses().forEach(action = stack::add)
-            }
+        .flatMap { annotation ->
+            (annotation.arguments.firstOrNull()?.value as? List<*>)
+                .orEmpty()
+                .filterIsInstance<KSType>()
         }
-
-        return result
-    }
 }

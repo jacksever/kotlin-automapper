@@ -22,10 +22,10 @@ import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.ksp.toTypeName
 import io.github.jacksever.automapper.annotation.DefaultValueSource.INLINE
-import io.github.jacksever.automapper.annotation.DefaultValueSource.PARAMETER
 import io.github.jacksever.automapper.annotation.DefaultValueSource.PARAMETER_WITH_DEFAULT
 import io.github.jacksever.automapper.processor.formatter.DefaultValueFormatter.format
 import io.github.jacksever.automapper.processor.model.MapperDefinition
+import io.github.jacksever.automapper.processor.model.MappingContext
 
 /**
  * A helper that adds runtime parameters to a mapper function specification
@@ -37,10 +37,12 @@ internal interface RuntimeParameterHelper {
      *
      * @param funSpecBuilder the builder for the mapper function
      * @param definition the definition of the mapper
+     * @param context generic scope used by the generated function
      */
     fun addRuntimeParameters(
         funSpecBuilder: FunSpec.Builder,
         definition: MapperDefinition,
+        context: MappingContext,
     )
 }
 
@@ -54,26 +56,27 @@ internal class RuntimeParameterHelperImpl(
     override fun addRuntimeParameters(
         funSpecBuilder: FunSpec.Builder,
         definition: MapperDefinition,
+        context: MappingContext,
     ) {
         val runtimeDefaults =
             definition.defaultValues.filter { default -> default.source != INLINE }
 
         if (runtimeDefaults.isEmpty()) return
 
-        if (!definition.target.modifiers.contains(Modifier.DATA)) {
+        if (Modifier.DATA !in definition.target.declaration.modifiers) {
             logger.error(
                 message = "Runtime default values are only supported for data classes",
-                symbol = definition.target
+                symbol = definition.target.declaration
             )
             return
         }
 
-        val constructorParams = definition.target.primaryConstructor?.parameters
+        val constructorParams = definition.target.declaration.primaryConstructor?.parameters
             ?.associateBy { parameter -> parameter.name?.asString() }
             ?: run {
                 logger.error(
-                    message = "Data class ${definition.target.simpleName.asString()} must have a primary constructor to use runtime default values",
-                    symbol = definition.target
+                    message = "Data class ${definition.target.declaration.simpleName.asString()} must have a primary constructor to use runtime default values",
+                    symbol = definition.target.declaration
                 )
                 return
             }
@@ -84,34 +87,29 @@ internal class RuntimeParameterHelperImpl(
 
             if (targetParameter == null) {
                 logger.error(
-                    message = "DefaultValue specified for non-existent property '$propertyName' in ${definition.target.simpleName.asString()}",
-                    symbol = definition.target
+                    message = "DefaultValue specified for non-existent property '$propertyName' in ${definition.target.declaration.simpleName.asString()}",
+                    symbol = definition.target.declaration
                 )
                 return@forEach
             }
 
-            val paramType = targetParameter.type.toTypeName()
+            val resolvedType = definition.target.parameterType(parameter = targetParameter)
+            val paramType = resolvedType.toTypeName(typeParamResolver = context.typeParameters)
 
-            when (defaultValue.source) {
-                PARAMETER -> {
-                    funSpecBuilder.addParameter(name = propertyName, type = paramType)
-                }
-
-                PARAMETER_WITH_DEFAULT -> {
-                    funSpecBuilder.addParameter(
-                        ParameterSpec.builder(name = propertyName, type = paramType)
-                            .defaultValue(
-                                codeBlock = format(
-                                    targetType = targetParameter.type.resolve(),
-                                    defaultValue = defaultValue.value
-                                )
+            val parameter = ParameterSpec.builder(name = propertyName, type = paramType)
+                .apply {
+                    if (defaultValue.source == PARAMETER_WITH_DEFAULT) {
+                        defaultValue(
+                            codeBlock = format(
+                                targetType = resolvedType,
+                                defaultValue = defaultValue.value,
                             )
-                            .build()
-                    )
+                        )
+                    }
                 }
+                .build()
 
-                INLINE -> Unit // Unreachable
-            }
+            funSpecBuilder.addParameter(parameterSpec = parameter)
         }
     }
 }

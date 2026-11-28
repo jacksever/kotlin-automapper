@@ -22,6 +22,7 @@ import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.ksp.toClassName
 import io.github.jacksever.automapper.processor.extension.isAssignableConsideringNullability
 import io.github.jacksever.automapper.processor.extension.toJoinedSimpleName
+import io.github.jacksever.automapper.processor.resolver.MappingTypeResolver
 
 /**
  * A helper object that provides conversion expressions for mapping between different object types
@@ -34,18 +35,22 @@ internal object ObjectConverter {
     /**
      * Generates a recursive mapping call for custom object types
      */
-    fun getConversion(sourceType: KSType, targetType: KSType): CodeBlock {
+    fun getConversion(
+        sourceType: KSType,
+        targetType: KSType,
+        types: MappingTypeResolver,
+    ): CodeBlock {
         // Nullability is handled by ParameterHelper; compatible types need no mapper call
         if (targetType.isAssignableConsideringNullability(from = sourceType)) return EMPTY
 
-        val sourceDeclaration = sourceType.declaration as? KSClassDeclaration ?: return EMPTY
+        val sourceDeclaration = types.classDeclaration(type = sourceType) ?: return EMPTY
         val targetDeclaration = targetType.declaration as? KSClassDeclaration ?: return EMPTY
 
         if (sourceDeclaration.isFrameworkType() || targetDeclaration.isFrameworkType()) {
             return EMPTY
         }
 
-        return CodeBlock.of(".as${targetType.toClassName().toJoinedSimpleName()}()")
+        return CodeBlock.of(".as${targetDeclaration.toClassName().toJoinedSimpleName()}()")
     }
 
     /**
