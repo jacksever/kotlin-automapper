@@ -127,11 +127,13 @@ internal object ParameterHelper {
 
                         add(
                             buildCodeBlock {
-                                val sourceName = "this.$sourceParameterName".takeIf { isShadowed }
-                                    ?: sourceParameterName
+                                val sourceName = CodeBlock.of(
+                                    if (isShadowed) "this.%N" else "%N",
+                                    sourceParameterName
+                                )
 
                                 add(
-                                    "%L = %L%L",
+                                    "%N = %L%L",
                                     targetParameterName,
                                     sourceName,
                                     conversion
@@ -147,7 +149,7 @@ internal object ParameterHelper {
                             add(
                                 buildCodeBlock {
                                     add(
-                                        "%L = %L",
+                                        "%N = %L",
                                         targetParameterName,
                                         format(
                                             targetType = targetParameter.type.resolve(),
@@ -163,7 +165,7 @@ internal object ParameterHelper {
                             add(
                                 buildCodeBlock {
                                     add(
-                                        "%L = %L",
+                                        "%N = %N",
                                         targetParameterName,
                                         targetParameterName
                                     )
@@ -178,7 +180,7 @@ internal object ParameterHelper {
                 }
 
                 targetParameter.type.resolve().isMarkedNullable -> {
-                    add(buildCodeBlock { add("%L = null", targetParameterName) })
+                    add(buildCodeBlock { add("%N = null", targetParameterName) })
                 }
 
                 else -> {
@@ -201,7 +203,7 @@ internal object ParameterHelper {
 
                             buildCodeBlock {
                                 add(
-                                    "%L = %T(\n",
+                                    "%N = %T(\n",
                                     targetParameterName,
                                     targetParameterClass.toClassName()
                                 )
@@ -260,7 +262,10 @@ internal object ParameterHelper {
         converter: ConverterDefinition,
     ): CodeBlock {
         val member = converter.function.asMemberName()
-        val sourceName = "this.$sourceParameterName".takeIf { isShadowed } ?: sourceParameterName
+        val sourceName = CodeBlock.of(
+            if (isShadowed) "this.%N" else "%N",
+            sourceParameterName
+        )
 
         // Use ?.let if source is nullable but converter input is not
         val needsSafeCall = sourceType.isMarkedNullable && !converter.from.isMarkedNullable
@@ -280,7 +285,7 @@ internal object ParameterHelper {
         val needsFallback = resultIsNullable && !targetType.isMarkedNullable
 
         return buildCodeBlock {
-            add("%L = ", targetParameterName)
+            add("%N = ", targetParameterName)
             add(baseCall)
 
             if (needsFallback) {
@@ -295,7 +300,7 @@ internal object ParameterHelper {
 
                         PARAMETER,
                         PARAMETER_WITH_DEFAULT -> {
-                            add(" ?: %L", targetParameterName)
+                            add(" ?: %N", targetParameterName)
                         }
                     }
                 } ?: add("!!")
@@ -349,7 +354,7 @@ internal object ParameterHelper {
 
                             PARAMETER,
                             PARAMETER_WITH_DEFAULT -> {
-                                default.property
+                                CodeBlock.of("%N", default.property)
                             }
                         }
 
