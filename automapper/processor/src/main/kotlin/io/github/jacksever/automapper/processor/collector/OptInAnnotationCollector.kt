@@ -143,21 +143,18 @@ internal class OptInAnnotationCollectorImpl(
     /**
      * Extracts OptIn marker types from annotations and adds them to [out]
      */
-    private fun collectOptInMarkers(annotations: Sequence<KSAnnotation>, out: MutableSet<KSType>) =
-        runCatching {
-            annotations.forEach { annotation ->
-                check(annotation.shortName.asString() == "OptIn")
+    private fun collectOptInMarkers(annotations: Sequence<KSAnnotation>, out: MutableSet<KSType>) {
+        annotations.forEach { annotation ->
+            val declaration = annotation.annotationType.resolve().declaration
+            if (declaration.qualifiedName?.asString() != "kotlin.OptIn") return@forEach
 
-                val declaration = annotation.annotationType.resolve().declaration
-                check(declaration.qualifiedName?.asString() == "kotlin.OptIn")
+            val markers = annotation.arguments.firstOrNull()?.value as? List<*>
 
-                val markers = annotation.arguments.firstOrNull()?.value as? List<*>
-
-                markers
-                    ?.filterIsInstance<KSType>()
-                    ?.forEach(action = out::add)
-            }
+            markers
+                ?.filterIsInstance<KSType>()
+                ?.forEach(action = out::add)
         }
+    }
 
     /**
      * Traverses a class hierarchy starting from a given [root] declaration and collects all reachable
