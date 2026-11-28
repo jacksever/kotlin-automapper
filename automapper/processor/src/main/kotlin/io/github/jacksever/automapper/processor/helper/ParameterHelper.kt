@@ -119,9 +119,10 @@ internal object ParameterHelper {
                     } else {
                         // Built-in conversions
                         val conversion = getConversionExpression(
+                            logger = logger,
                             sourceType = sourceType,
                             targetType = targetType,
-                            isShadowed = isShadowed,
+                            converters = converters,
                             defaultValue = defaultValue,
                         )
 
@@ -261,11 +262,32 @@ internal object ParameterHelper {
         defaultValue: DefaultValue?,
         converter: ConverterDefinition,
     ): CodeBlock {
-        val member = converter.function.asMemberName()
         val sourceName = CodeBlock.of(
             if (isShadowed) "this.%N" else "%N",
             sourceParameterName
         )
+        val call = buildConverterCall(
+            converter = converter,
+            sourceType = sourceType,
+            targetType = targetType,
+            sourceName = sourceName,
+            defaultValue = defaultValue,
+        )
+
+        return CodeBlock.of("%N = %L", targetParameterName, call)
+    }
+
+    /**
+     * Builds a converter call with null handling for a property or collection element
+     */
+    private fun buildConverterCall(
+        sourceType: KSType,
+        targetType: KSType,
+        sourceName: CodeBlock,
+        defaultValue: DefaultValue?,
+        converter: ConverterDefinition,
+    ): CodeBlock {
+        val member = converter.function.asMemberName()
 
         // Use ?.let if source is nullable but converter input is not
         val needsSafeCall = sourceType.isMarkedNullable && !converter.from.isMarkedNullable
@@ -285,7 +307,6 @@ internal object ParameterHelper {
         val needsFallback = resultIsNullable && !targetType.isMarkedNullable
 
         return buildCodeBlock {
-            add("%N = ", targetParameterName)
             add(baseCall)
 
             if (needsFallback) {
@@ -300,7 +321,7 @@ internal object ParameterHelper {
 
                         PARAMETER,
                         PARAMETER_WITH_DEFAULT -> {
-                            add(" ?: %N", targetParameterName)
+                            add(" ?: %N", default.property)
                         }
                     }
                 } ?: add("!!")
@@ -309,16 +330,55 @@ internal object ParameterHelper {
     }
 
     /**
+     * Builds the complete expression for converting an element named `value`.
+     * An empty block means the element can be assigned without conversion.
+     */
+    private fun buildCollectionElementConversion(
+        logger: KSPLogger,
+        sourceType: KSType,
+        targetType: KSType,
+        converters: List<ConverterDefinition>,
+    ): CodeBlock {
+        val converter = findConverter(
+            logger = logger,
+            to = targetType,
+            from = sourceType,
+            converters = converters,
+        )
+
+        if (converter != null) {
+            return buildConverterCall(
+                defaultValue = null,
+                converter = converter,
+                sourceType = sourceType,
+                targetType = targetType,
+                sourceName = CodeBlock.of("value"),
+            )
+        }
+
+        val conversion = getConversionExpression(
+            logger = logger,
+            defaultValue = null,
+            sourceType = sourceType,
+            targetType = targetType,
+            converters = converters,
+        )
+
+        return if (conversion.isEmpty()) conversion else CodeBlock.of("value%L", conversion)
+    }
+
+    /**
      * Determines the conversion expression needed to assign [sourceType] to [targetType]
      */
     private fun getConversionExpression(
+        logger: KSPLogger,
         sourceType: KSType,
         targetType: KSType,
-        isShadowed: Boolean,
+        converters: List<ConverterDefinition>,
         defaultValue: DefaultValue?,
     ): CodeBlock {
-        // 0. Exact match
-        if (sourceType == targetType) return CodeBlock.of("")
+        // Exact collection types can still require element converters.
+        if (sourceType == targetType && converters.isEmpty()) return CodeBlock.of("")
 
         // 1. Try Primitive Conversion
         var conversion = PrimitiveConverter.getConversion(from = sourceType, to = targetType)
@@ -328,9 +388,14 @@ internal object ParameterHelper {
             conversion = CollectionConverter.getConversion(
                 sourceType = sourceType,
                 targetType = targetType,
-                isShadowed = isShadowed,
-                defaultValue = defaultValue,
-                getInnerConversion = ::getConversionExpression,
+                getInnerConversion = { sourceElementType, targetElementType ->
+                    buildCollectionElementConversion(
+                        logger = logger,
+                        converters = converters,
+                        sourceType = sourceElementType,
+                        targetType = targetElementType,
+                    )
+                },
             )
         }
 
