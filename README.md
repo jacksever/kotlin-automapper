@@ -21,8 +21,8 @@ package example
 import io.github.jacksever.automapper.annotation.AutoMapper
 import io.github.jacksever.automapper.annotation.AutoMapperModule
 
-data class UserDto(val id: Long, val name: String)
 data class User(val id: Long, val name: String)
+data class UserDto(val id: Long, val name: String)
 
 @AutoMapperModule
 internal interface UserMapperModule {
@@ -73,8 +73,8 @@ ksp = "2.3.14"
 kotlin-automapper = "0.11.0"
 
 [libraries]
-kotlin-automapper-annotation = { module = "io.github.jacksever.automapper:annotation", version.ref = "kotlin-automapper" }
 kotlin-automapper-processor = { module = "io.github.jacksever.automapper:processor", version.ref = "kotlin-automapper" }
+kotlin-automapper-annotation = { module = "io.github.jacksever.automapper:annotation", version.ref = "kotlin-automapper" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
