@@ -111,14 +111,14 @@ For **Android** or **Kotlin Multiplatform**, follow the [installation guide](htt
 
 | Capability | What it provides | Guide |
 | --- | --- | --- |
-| Data classes, enums, and sealed hierarchies | Constructor-based object mapping and generated `when` branches | [Basic usage](docs/how-to-use.md) |
-| Bidirectional mappings | Forward and reverse extensions, with `reversible = false` for one direction | [Mapping directions](docs/advanced/unidirectional-mapping.md) |
-| Property renaming | Match differently named properties or enum/sealed members | [Property mapping](docs/advanced/property-mapping.md) |
-| Defaults and nullability | Inline defaults or runtime parameters for missing values and nullable-to-required mappings | [Default values](docs/advanced/default-values.md) |
-| Custom converters | Property and collection-element conversions, including generic converter functions | [Converters](docs/advanced/custom-type-conversion.md) |
-| Nested objects and delegated properties | Construct nested targets from flat source properties and read properties exposed through `by` | [Nested object mapping](docs/advanced/nested-object-mapping.md) |
-| Generic types | Concrete and open arguments, upper bounds, inherited members, aliases, and supported projections | [Generic mapping](docs/advanced/generic-mapping.md) |
-| Collections | Convert elements and construct the requested supported mutable or read-only collection | [Collections](docs/advanced/generic-mapping.md#inherited-properties-and-collections) |
+| Data classes, enums, and sealed hierarchies | Constructor-based object mapping and generated `when` branches | [Basic usage](https://jacksever.github.io/kotlin-automapper/how-to-use/) |
+| Bidirectional mappings | Forward and reverse extensions, with `reversible = false` for one direction | [Mapping directions](https://jacksever.github.io/kotlin-automapper/advanced/unidirectional-mapping/) |
+| Property renaming | Match differently named properties or enum/sealed members | [Property mapping](https://jacksever.github.io/kotlin-automapper/advanced/property-mapping/) |
+| Defaults and nullability | Inline defaults or runtime parameters for missing values and nullable-to-required mappings | [Default values](https://jacksever.github.io/kotlin-automapper/advanced/default-values/) |
+| Custom converters | Property and collection-element conversions, including generic converter functions | [Converters](https://jacksever.github.io/kotlin-automapper/advanced/custom-type-conversion/) |
+| Nested objects and delegated properties | Construct nested targets from flat source properties and read properties exposed through `by` | [Nested object mapping](https://jacksever.github.io/kotlin-automapper/advanced/nested-object-mapping/) |
+| Generic types | Concrete and open arguments, upper bounds, inherited members, aliases, and supported projections | [Generic mapping](https://jacksever.github.io/kotlin-automapper/advanced/generic-mapping/) |
+| Collections | Convert elements and construct the requested supported mutable or read-only collection | [Collections](https://jacksever.github.io/kotlin-automapper/advanced/generic-mapping/#inherited-properties-and-collections) |
 
 Custom converters take precedence over built-in conversions. Required `@OptIn` markers from the converters actually used are propagated to generated functions.
 
