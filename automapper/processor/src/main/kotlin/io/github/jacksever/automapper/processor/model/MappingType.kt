@@ -37,12 +37,17 @@ internal class MappingType(
     private val resolver: MappingTypeResolver,
 ) {
 
-    /** Class declaration used to select a mapping strategy and track source dependencies */
-    val declaration: KSClassDeclaration = requireNotNull(value = type.declaration as? KSClassDeclaration) {
-        "Mapping type '$type' must be a class"
-    }
+    /**
+     * Class declaration used to select a mapping strategy and track source dependencies
+     */
+    val declaration: KSClassDeclaration =
+        requireNotNull(value = type.declaration as? KSClassDeclaration) {
+            "Mapping type '$type' must be a class"
+        }
 
-    /** Concrete type that can be used in a constructor call, without use-site projections */
+    /**
+     * Concrete type that can be used in a constructor call, without use-site projections
+     */
     val constructorType: KSType by lazy {
         resolver.constructorType(type = type)
     }
@@ -51,9 +56,7 @@ internal class MappingType(
         val constructor = declaration.primaryConstructor ?: return@lazy emptyMap()
         val signature = constructor.asMemberOf(containing = constructorType)
 
-        check(value = !signature.isError) {
-            "Cannot resolve constructor of '$type'"
-        }
+        check(value = !signature.isError) { "Cannot resolve constructor of '$type'" }
 
         constructor.parameters.zip(other = signature.parameterTypes)
             .associate { (parameter, resolvedType) ->

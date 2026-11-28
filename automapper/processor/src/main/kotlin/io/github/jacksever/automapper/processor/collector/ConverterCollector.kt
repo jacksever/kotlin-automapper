@@ -117,10 +117,10 @@ internal class ConverterCollectorImpl(
         logger.info(message = "Found converter: ${function.qualifiedName?.asString()} from ${fromType.declaration.simpleName.asString()} to ${returnType.declaration.simpleName.asString()}")
 
         return ConverterDefinition(
+            owner = owner,
             from = fromType,
             to = returnType,
             function = function,
-            owner = owner
         )
     }
 

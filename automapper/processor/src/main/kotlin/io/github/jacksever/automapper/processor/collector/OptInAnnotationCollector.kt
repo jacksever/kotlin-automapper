@@ -99,7 +99,9 @@ internal class OptInAnnotationCollectorImpl(
             .build()
     }
 
-    /** Extracts the marker types explicitly listed by this symbol's `@OptIn` annotations */
+    /**
+     * Extracts the marker types explicitly listed by this symbol's `@OptIn` annotations
+     */
     private fun KSAnnotated.optInMarkers(): Sequence<KSType> = annotations
         .filter { annotation ->
             annotation.annotationType.resolve().declaration.qualifiedName?.asString() == "kotlin.OptIn"

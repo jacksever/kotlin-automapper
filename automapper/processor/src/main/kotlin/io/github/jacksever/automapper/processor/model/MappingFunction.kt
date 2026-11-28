@@ -22,12 +22,12 @@ package io.github.jacksever.automapper.processor.model
  * The definition represents one mapping direction. Kotlin and JVM names are resolved together
  * so the function builder does not need to inspect other mappings in the file
  *
- * @property definition configuration for this mapping direction
  * @property name Kotlin extension name
+ * @property definition configuration for this mapping direction
  * @property jvmName distinct JVM name when generic overloads would otherwise share an erased signature
  */
 internal data class MappingFunction(
-    val definition: MapperDefinition,
     val name: String,
+    val definition: MapperDefinition,
     val jvmName: String? = null,
 )

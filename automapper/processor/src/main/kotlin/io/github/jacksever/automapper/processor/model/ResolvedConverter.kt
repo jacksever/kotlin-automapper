@@ -24,12 +24,12 @@ import com.google.devtools.ksp.symbol.KSType
  * Keeping the declaration separate preserves its original generic constraints for specificity
  * comparisons, while null handling uses the substituted input and output types
  *
- * @property definition original converter declaration and registered owner
  * @property from substituted input type
  * @property to substituted output type
+ * @property definition original converter declaration and registered owner
  */
 internal data class ResolvedConverter(
-    val definition: ConverterDefinition,
     val from: KSType,
     val to: KSType,
+    val definition: ConverterDefinition,
 )

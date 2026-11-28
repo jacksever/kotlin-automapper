@@ -35,9 +35,13 @@ internal class MappingContext(
     val typeParameters: TypeParameterResolver,
 ) {
 
-    /** Resolves converter signatures before checking their applicability */
+    /**
+     * Resolves converter signatures before checking their applicability
+     */
     val converterResolver = ConverterResolver(types = types)
 
-    /** Declarations of converters actually used by this function */
+    /**
+     * Declarations of converters actually used by this function
+     */
     val usedConverters = linkedSetOf<ConverterDefinition>()
 }

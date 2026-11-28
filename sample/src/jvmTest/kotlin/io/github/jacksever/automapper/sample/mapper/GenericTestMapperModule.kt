@@ -238,7 +238,6 @@ internal interface GenericTestMapperModule {
 
     @AutoMapper(reversible = false, converters = [ReifiedGenericConverter::class])
     fun reifiedArrayMapper(from: ReifiedContainerSource<Array<String>>): ReifiedGenericTarget
-
 }
 
 @AutoMapperModule
