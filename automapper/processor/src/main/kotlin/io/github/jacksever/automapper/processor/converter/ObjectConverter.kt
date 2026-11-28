@@ -20,6 +20,7 @@ import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSType
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.ksp.toClassName
+import io.github.jacksever.automapper.processor.extension.isAssignableConsideringNullability
 import io.github.jacksever.automapper.processor.extension.toJoinedSimpleName
 
 /**
@@ -34,6 +35,9 @@ internal object ObjectConverter {
      * Generates a recursive mapping call for custom object types
      */
     fun getConversion(sourceType: KSType, targetType: KSType): CodeBlock {
+        // Nullability is handled by ParameterHelper; compatible types need no mapper call
+        if (targetType.isAssignableConsideringNullability(from = sourceType)) return EMPTY
+
         val sourceDeclaration = sourceType.declaration as? KSClassDeclaration ?: return EMPTY
         val targetDeclaration = targetType.declaration as? KSClassDeclaration ?: return EMPTY
 
